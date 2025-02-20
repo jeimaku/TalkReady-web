@@ -1,0 +1,185 @@
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import "./course.css";
+
+const courses = [
+  { id: 1, title: "Mastering Professional Communication", level: "B2", category: "Speaking", status: "Available", lessons: 25, img: "communication.png", color: "bg-blue-100", icon: "🗣️" },
+  { id: 2, title: "AI-Powered Job Interview Prep", level: "B2-C1", category: "Speaking", status: "Available", lessons: 30, img: "interview.png", color: "bg-orange-100", icon: "🤖" },
+  { id: 3, title: "Handling Difficult Customers", level: "B1-B2", category: "Customer Service", status: "Available", lessons: 18, img: "customerservice.png", color: "bg-red-100", icon: "📞" },
+  { id: 4, title: "Effective Business Email Writing", level: "B2-C1", category: "Writing", status: "Available", lessons: 20, img: "email.png", color: "bg-green-100", icon: "✉️" },
+  { id: 5, title: "Call Center Listening & Response Training", level: "B2", category: "Listening", status: "Available", lessons: 22, img: "headset.png", color: "bg-purple-100", icon: "🎧" },
+  { id: 6, title: "Grammar & Pronunciation Perfection", level: "B1-B2", category: "Speaking", status: "Available", lessons: 15, img: "grammar.png", color: "bg-yellow-100", icon: "📚" },
+  { id: 7, title: "Advanced Workplace Conversations", level: "B2-C1", category: "Speaking", status: "Available", lessons: 28, img: "workplace.png", color: "bg-teal-100", icon: "🏢" },
+  { id: 8, title: "Cross-Cultural Communication for BPO", level: "B2-C1", category: "Listening", status: "Available", lessons: 17, img: "global.png", color: "bg-pink-100", icon: "🌍" },
+  { id: 9, title: "Public Speaking & Presentation Skills", level: "B1-B2", category: "Speaking", status: "Available", lessons: 25, img: "presentation.png", color: "bg-indigo-100", icon: "🎤" },
+
+  // ✅ NEW: Accent & Pronunciation Training Courses
+  { id: 10, title: "American Accent Training", level: "B2", category: "Accent & Pronunciation Training", status: "Available", lessons: 20, img: "american.png", color: "bg-blue-200", icon: "🏴" },
+  { id: 11, title: "British Accent Training", level: "B2", category: "Accent & Pronunciation Training", status: "Available", lessons: 18, img: "british.png", color: "bg-red-200", icon: "🇬🇧" },
+  { id: 12, title: "Australian Accent Training", level: "B2", category: "Accent & Pronunciation Training", status: "Available", lessons: 15, img: "australian.png", color: "bg-yellow-200", icon: "🇦🇺" },
+  { id: 13, title: "Interactive AI Pronunciation Practice", level: "B2-C1", category: "Accent & Pronunciation Training", status: "Available", lessons: 25, img: "ai-practice.png", color: "bg-purple-200", icon: "🎤" }
+];
+
+function CourseCard({ course }) {
+  return (
+    <motion.div 
+      className={`course-card ${course.color}`}
+      whileHover={{ scale: 1.05, boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)" }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="text-5xl">{course.icon}</div>
+      <h3 className="course-title mt-2">{course.title}</h3>
+      <p className="course-level">{course.level}</p>
+      <p className="course-lessons">Lessons: {course.lessons}</p>
+    </motion.div>
+  );
+}
+
+function Courses() {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState({ category: '', status: '', level: '' });
+
+  const resetFilter = (filterType) => {
+    setFilter({ ...filter, [filterType]: '' });
+  };
+
+  const filteredCourses = courses.filter(course =>
+    course.title.toLowerCase().includes(search.toLowerCase()) &&
+    (filter.category ? course.category === filter.category : true) &&
+    (filter.status ? course.status === filter.status : true) &&
+    (filter.level ? course.level === filter.level : true)
+  );
+
+  return (
+    <div className="courses-page">
+      <motion.div 
+        className="filter-container"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <input
+          type="text"
+          placeholder="Search"
+          className="search-bar"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="filter-group">
+          <select className="filter-dropdown" onChange={(e) => setFilter({ ...filter, category: e.target.value })} value={filter.category}>
+            <option value="">Category</option>
+            <option value="Speaking">Speaking</option>
+            <option value="Writing">Writing</option>
+            <option value="Listening">Listening</option>
+            <option value="Customer Service">Customer Service</option>
+            <option value="Accent & Pronunciation Training">Accent & Pronunciation Training</option> {/* ✅ NEW */}
+          </select>
+          <button className="reset-btn" onClick={() => resetFilter('category')}>Reset</button>
+        </div>
+      </motion.div>
+
+      <motion.div 
+        className="courses-container"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {filteredCourses.map((course) => (
+          <CourseCard key={course.id} course={course} />
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+export default Courses;
+
+
+
+
+
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import "./course.css";
+import { Link } from "react-router-dom";
+
+const courses = [
+  { id: 1, title: "Grammar & Pronunciation for BPO Professionals", level: "B2", category: "Speaking", status: "Available", lessons: 25, img: "communication.png", color: "bg-blue-100", icon: "🗣️" },
+
+];
+
+function CourseCard({ course }) {
+  return (
+    <Link to="/course/grammar-pronunciation" className="no-underline">
+      <motion.div 
+        className={`course-card ${course.color}`}
+        whileHover={{ scale: 1.05, boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)" }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <div className="text-5xl">{course.icon}</div>
+        <h3 className="course-title mt-2">{course.title}</h3>
+        <p className="course-level">{course.level}</p>
+        <p className="course-lessons">Lessons: {course.lessons}</p>
+      </motion.div>
+    </Link>
+  );
+}
+
+function Courses() {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState({ category: '', status: '', level: '' });
+
+  const resetFilter = (filterType) => {
+    setFilter({ ...filter, [filterType]: '' });
+  };
+
+  const filteredCourses = courses.filter(course =>
+    course.title.toLowerCase().includes(search.toLowerCase()) &&
+    (filter.category ? course.category === filter.category : true) &&
+    (filter.status ? course.status === filter.status : true) &&
+    (filter.level ? course.level === filter.level : true)
+  );
+
+  return (
+    <div className="courses-page">
+      <motion.div 
+        className="filter-container"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <input
+          type="text"
+          placeholder="Search"
+          className="search-bar"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="filter-group">
+          <select className="filter-dropdown" onChange={(e) => setFilter({ ...filter, category: e.target.value })} value={filter.category}>
+            <option value="">Category</option>
+            <option value="Speaking">Speaking</option>
+            <option value="Writing">Writing</option>
+            <option value="Listening">Listening</option>
+            <option value="Customer Service">Customer Service</option>
+            <option value="Accent & Pronunciation Training">Accent & Pronunciation Training</option> {/* ✅ NEW */}
+          </select>
+          <button className="reset-btn" onClick={() => resetFilter('category')}>Reset</button>
+        </div>
+      </motion.div>
+
+      <motion.div 
+        className="courses-container"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {filteredCourses.map((course) => (
+          <CourseCard key={course.id} course={course} />
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+export default Courses;

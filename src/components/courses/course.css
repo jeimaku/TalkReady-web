@@ -1,0 +1,146 @@
+/* Reset styling for the filter-container */
+.filter-container {
+  display: flex;
+  justify-content: flex-start; /* Keep the search bar on the left */
+  align-items: center;
+  gap: 10px; /* Default gap between elements */
+  width: 80%; /* Align the container with the course container */
+  margin-top: 90px; /* Adjust margin */
+  margin-bottom: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Search bar styling */
+.search-bar {
+  padding: 10px 15px;
+  width: 250px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+}
+
+.search-bar:focus {
+  border-color: #5b9bd5;
+  outline: none;
+}
+
+/* Dropdown filters styling */
+.filter-dropdown {
+  padding: 10px 15px;
+  width: 200px; /* Set a fixed width for dropdowns */
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 0.9rem; /* Slightly smaller font size */
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+}
+
+.filter-dropdown:focus {
+  border-color: #5b9bd5;
+  outline: none;
+}
+
+/* Ensure the header is correctly positioned */
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  z-index: 10;
+}
+
+/* Grid layout for courses */
+.courses-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 courses per row */
+  gap: 20px;
+  width: 80%;
+  margin-top: 50px;
+  padding-top: 20px;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Styling for each course card */
+.course-card {
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.course-card:hover {
+  transform: scale(1.05);
+}
+
+.course-image {
+  width: 50px;
+  height: 50px;
+  margin-bottom: 10px;
+}
+
+.course-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.course-level {
+  font-size: 1rem;
+  color: #777;
+  margin-bottom: 10px;
+}
+
+.course-lessons {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+/* Add styles for the reset buttons */
+.reset-btn {
+  background-color: #ff5e5e;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.reset-btn:hover {
+  background-color: #ff2a2a;
+}
+
+/* Wrapper for the filter dropdowns and reset buttons */
+.filter-dropdown-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+
+
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .courses-container {
+    grid-template-columns: repeat(2, 1fr); /* 2 courses per row on smaller screens */
+  }
+}
+
+@media (max-width: 900px) {
+  .courses-container {
+    grid-template-columns: 1fr; /* 1 course per row on very small screens */
+  }
+}

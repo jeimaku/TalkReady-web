@@ -1,0 +1,79 @@
+{
+  "name": "react-firebase-auth",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@cloudinary/react": "^1.13.1",
+    "@cloudinary/url-gen": "^1.21.0",
+    "@kommunicate/kommunicate-chatbot-plugin": "^0.0.7",
+    "@radix-ui/react-icons": "^1.3.2",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@radix-ui/themes": "^3.2.0",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "assemblyai": "^4.9.0",
+    "autoprefixer": "^10.4.16",
+    "axios": "^1.7.9",
+    "buffer": "^6.0.3",
+    "chart.js": "^4.4.7",
+    "class-variance-authority": "^0.7.1",
+    "cloudinary-react": "^1.8.1",
+    "cors": "^2.8.5",
+    "crypto-browserify": "^3.12.1",
+    "dialogflow": "^1.2.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase": "^11.2.0",
+    "framer-motion": "^12.4.3",
+    "fs": "^0.0.1-security",
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^144.0.0",
+    "lucide-react": "^0.475.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.42.0",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.85.2",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
+    "postcss": "^8.4.33",
+    "querystring-es3": "^0.2.1",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^18.2.0",
+    "react-google-charts": "^5.2.1",
+    "react-icons": "^5.4.0",
+    "react-router-dom": "^6.29.0",
+    "react-scripts": "5.0.1",
+    "stream-browserify": "^3.0.0",
+    "styled-components": "^6.1.15",
+    "tailwind-variants": "^0.3.1",
+    "tailwindcss": "^3.4.1",
+    "url": "^0.11.4",
+    "util": "^0.12.5",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

@@ -1,0 +1,164 @@
+import React, { Component } from "react";
+
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/dchj7fhyn/upload`;
+const ASSEMBLYAI_API_KEY = "c278f48a04614fdda18826febb599a07"; // Replace with your API key
+
+export class Chatbot extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            recording: false,
+            audioBlob: null,
+            audioURL: "",
+        };
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+    }
+
+    componentDidMount() {
+        (function(d, m) {
+            var kommunicateSettings = {
+                "appId": "102711c9544d5159209332c74049e1915", // Replace with your Kommunicate App ID
+                "popupWidget": true,
+                "automaticChatOpenOnNavigation": true,
+                "botIds": ["talkready-bot-aouog"], // OpenAI Bot ID
+                "voiceInput": true
+            };
+            var s = document.createElement("script");
+            s.type = "text/javascript";
+            s.async = true;
+            s.src = "https://widget.kommunicate.io/v2/kommunicate.app";
+            var h = document.getElementsByTagName("head")[0];
+            h.appendChild(s);
+            window.kommunicate = m;
+            m._globals = kommunicateSettings;
+        })(document, window.kommunicate || {});
+    }
+
+    startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.audioChunks = [];
+
+            this.mediaRecorder.ondataavailable = (event) => {
+                this.audioChunks.push(event.data);
+            };
+
+            this.mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(this.audioChunks, { type: "audio/ogg" });
+                const audioURL = URL.createObjectURL(audioBlob);
+                this.setState({ audioBlob, audioURL });
+                console.log("Recording completed. Audio URL:", audioURL);
+            };
+
+            this.mediaRecorder.start();
+            this.setState({ recording: true });
+        } catch (error) {
+            console.error("Error accessing microphone:", error);
+        }
+    };
+
+    stopRecording = () => {
+        if (this.mediaRecorder) {
+            this.mediaRecorder.stop();
+            this.setState({ recording: false });
+        }
+    };
+
+    uploadToCloudinary = async () => {
+        if (!this.state.audioBlob) {
+            alert("Please record audio first!");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", this.state.audioBlob);
+        formData.append("upload_preset", "audio_upload");
+        formData.append("resource_type", "auto");
+
+        try {
+            const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!data.secure_url) throw new Error("Upload failed");
+
+            console.log("Upload successful! Cloudinary URL:", data.secure_url);
+            alert("Upload successful! Sending for transcription.");
+            this.sendToAssemblyAI(data.secure_url);
+        } catch (error) {
+            console.error("Upload Error:", error);
+        }
+    };
+
+    sendToAssemblyAI = async (audioURL) => {
+        try {
+            const response = await fetch("https://api.assemblyai.com/v2/transcript", {
+                method: "POST",
+                headers: {
+                    "Authorization": ASSEMBLYAI_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ audio_url: audioURL })
+            });
+
+            const data = await response.json();
+            console.log("AssemblyAI Response:", data);
+            this.checkTranscriptionStatus(data.id);
+        } catch (error) {
+            console.error("AssemblyAI Error:", error);
+        }
+    };
+
+    checkTranscriptionStatus = async (transcriptionId, retries = 5) => {
+        let status = "queued";
+        let attempts = 0;
+
+        while ((status === "queued" || status === "processing") && attempts < retries) {
+            await new Promise(res => setTimeout(res, 5000));
+
+            const response = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptionId}`, {
+                headers: { "Authorization": ASSEMBLYAI_API_KEY }
+            });
+
+            const data = await response.json();
+            status = data.status;
+            attempts++;
+
+            console.log(`Transcription Status Attempt ${attempts}:`, status);
+
+            if (status === "completed") {
+                console.log("Final Transcription:", data.text);
+                this.sendTranscriptionToChatbot(data.text);
+                return;
+            }
+        }
+
+        console.error("Transcription failed after multiple attempts.");
+    };
+
+    sendTranscriptionToChatbot = (transcription) => {
+        if (!transcription || transcription.trim() === "") {
+            console.error("Error: Received empty transcription.");
+            alert("Sorry, we couldn't transcribe the audio. Please try again.");
+            return;
+        }
+
+        console.log("Sending transcribed text to OpenAI chatbot:", transcription);
+        if (window.Kommunicate) {
+            window.Kommunicate.sendMessage(transcription);
+        } else {
+            console.error("Kommunicate is not available.");
+        }
+    };
+
+    render() {
+        return 
+    }
+}
+
+export default Chatbot;
