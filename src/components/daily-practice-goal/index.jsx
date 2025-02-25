@@ -3,8 +3,13 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { FaClock } from "react-icons/fa"; // Icon for time-based goals
 
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase/firebase";
+import { useAuth } from '../../contexts/authContext';
+
 const DailyPracticeGoal = () => {
   const [selectedGoal, setSelectedGoal] = useState(null);
+  const { currentUser } = useAuth(); // Get the current user  
   const navigate = useNavigate();
 
   const goals = [
@@ -15,9 +20,23 @@ const DailyPracticeGoal = () => {
     "60 mins / day",
   ];
 
-  const handleContinue = () => {
-    if (selectedGoal) {
-      navigate("/personalizing-plan"); // Navigate to next page
+  const handleContinue = async () => {
+    if (!selectedGoal) {
+      console.warn("⚠️ Please select a daily practice goal before continuing.");
+      return;
+    }
+
+    if (currentUser) {
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, { "onboarding.dailyPracticeGoal": selectedGoal });
+        console.log("✅ Daily practice goal stored successfully in Firestore:", selectedGoal);
+        navigate("/personalizing-plan");
+      } catch (error) {
+        console.error("❌ Error storing daily practice goal:", error);
+      }
+    } else {
+      console.error("❌ No authenticated user found.");
     }
   };
 

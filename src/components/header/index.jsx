@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/authContext';
 import { doSignOut } from '../../firebase/auth';
-import { FaHome, FaUserAlt, FaClipboardList, FaTrophy } from 'react-icons/fa';
+import { FaHome, FaUserAlt, FaClipboardList, FaTrophy, FaRobot } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 const Header = () => {
@@ -76,8 +76,8 @@ const Header = () => {
           <Link to="/my-reports" className={`flex items-center space-x-2 ${location.pathname === '/my-reports' ? 'text-[#0077B3] font-bold' : 'text-[#3066be]'} hover:scale-105 transition`}>
             <FaClipboardList className="text-2xl" /> <span>My Reports</span>
           </Link>
-          <Link to="/challenge" className={`flex items-center space-x-2 ${location.pathname === '/challenge' ? 'text-[#0077B3] font-bold' : 'text-[#3066be]'} hover:scale-105 transition`}>
-            <FaTrophy className="text-2xl" /> <span>Challenge</span>
+          <Link to="/Chatbot" className={`flex items-center space-x-2 ${location.pathname === '/Chatbot' ? 'text-[#0077B3] font-bold' : 'text-[#3066be]'} hover:scale-105 transition`}>
+            <FaRobot className="text-2xl" /> <span>Chatbot</span>
           </Link>
         </div>
       ) : (

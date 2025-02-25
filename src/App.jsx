@@ -16,13 +16,18 @@ import Profile from "./components/profile";
 import Courses from "./components/courses";
 import JobInterviewPrep from "./components/job-interview-prep";
 import Test from "./components/test";
-import { Chatbot } from "./components/chatbot";
 import MyReports from "./components/my-reports";
-import Challenge from "./components/challenge";
 import EnglishForWork from "./components/english-for-work";
 import WelcomePage from "./components/welcome-page";
+import Chatbot from "./components/chatbot";
 
-import EngCommSkills from "./components/courses/course-details/eng-comm-skills";
+//courses
+import IntroEnglishPronunciation from "./components/courses/course-details/intro-english-pronunciation";
+
+
+//assessments
+import PhoneticChartActivity from "./components/courses/course-details/phonetic-chart-act/PhoneticChartActivity";
+
 
 function App() {
   const { userLoggedIn, hasCompletedOnboarding } = useAuth();
@@ -71,12 +76,15 @@ function App() {
     { path: "/job-interview-prep", element: <ProtectedRoute element={<JobInterviewPrep setProgress={setProgress} />} /> },
     { path: "/my-reports", element: <ProtectedRoute element={<MyReports setProgress={setProgress} />} /> },
     { path: "/test", element: <ProtectedRoute element={<Test setProgress={setProgress} />} /> },
-    { path: "/challenge", element: <ProtectedRoute element={<Challenge setProgress={setProgress} />} /> },
     { path: "/english-for-work", element: <ProtectedRoute element={<EnglishForWork setProgress={setProgress} />} /> },
-  
+    { path: "chatbot", element: <ProtectedRoute element={<Chatbot setProgress={setProgress} />} /> },
+
     // ✅ Course Details Routes
-    { path: "/course/eng-comm-skills", element: <ProtectedRoute element={<EngCommSkills />} /> },
-  
+    { path: "/course/:courseId", element: <ProtectedRoute element={<IntroEnglishPronunciation setProgress={setProgress} />} /> },
+
+    // ✅ Course Details Routes
+    { path: "course/:courseId/phonetic-chart-assessment", element: <PhoneticChartActivity setProgress={setProgress} /> }
+
   
   ];
 
@@ -88,15 +96,23 @@ function App() {
       {!onboardingPages.includes(location.pathname) &&
         location.pathname !== "/login" &&
         location.pathname !== "/register" &&
-        location.pathname !== "/course/eng-comm-skills" && 
+        location.pathname !== "/course/intro-english-pronunciation" &&
+
+        location.pathname !== "/course/course-details/assessment/phonetic" &&
+
+        // location.pathname !== "/Chatbot" && 
         <Header />}
       
-      <div className="w-full h-screen flex flex-col">
+      {/* <div className="w-full h-screen flex flex-col">
         <div className="w-full bg-gray-300 h-2">
           <div className="bg-blue-600 h-full" style={{ width: `${progress}%` }}></div>
         </div>
         {routesElement}
-        <Chatbot />
+      </div>
+    </AuthProvider> */}
+    <div className="w-full h-screen flex flex-col">
+        {/* Removed progress bar */}
+        {routesElement}
       </div>
     </AuthProvider>
   );

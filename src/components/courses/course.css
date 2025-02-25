@@ -71,26 +71,34 @@ header {
 /* Styling for each course card */
 .course-card {
   background-color: #f9f9f9;
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
   text-align: center;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .course-card:hover {
-  transform: scale(1.05);
+  transform: translateY(-10px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
 .course-image {
   width: 50px;
   height: 50px;
   margin-bottom: 10px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.course-icon {
+  font-size: 3rem;
 }
 
 .course-title {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: bold;
+  color: #1e40af;
   margin-bottom: 10px;
 }
 
@@ -103,6 +111,30 @@ header {
 .course-lessons {
   font-size: 0.9rem;
   color: #555;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  margin-top: 10px;
+  border-radius: 15px;
+  font-weight: bold;
+}
+
+.status-badge.available {
+  background-color: #34d399;
+  color: white;
+}
+
+.status-badge.coming-soon {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.status-badge.locked {
+  background-color: #9ca3af;
+  color: white;
 }
 
 /* Add styles for the reset buttons */
@@ -129,8 +161,24 @@ header {
   gap: 5px;
 }
 
+/* Styling for the Lessons */
+.lesson-list {
+  list-style-type: none;
+  padding: 0;
+}
 
+.lesson-item {
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  color: #1e40af;
+  font-weight: bold;
+}
 
+.lesson-task {
+  font-size: 1rem;
+  color: #555;
+  margin-left: 20px;
+}
 
 /* Responsive Design */
 @media (max-width: 1200px) {

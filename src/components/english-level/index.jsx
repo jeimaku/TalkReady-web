@@ -3,8 +3,13 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { FaCheckCircle, FaBookOpen } from 'react-icons/fa'; // Icons for UI improvement
 
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase/firebase";
+import { useAuth } from '../../contexts/authContext';
+
 const EnglishLevel = () => {
     const [selectedLevel, setSelectedLevel] = useState(null);
+    const { currentUser } = useAuth(); // Get the current user
     const navigate = useNavigate();
 
     const levels = [
@@ -15,9 +20,18 @@ const EnglishLevel = () => {
         { name: 'Advanced C', description: 'I can understand TV shows and discuss complex topics.' },
     ];
 
-    const handleContinue = () => {
-        if (selectedLevel) {
+    const handleContinue = async () => {
+        if (selectedLevel && currentUser) {
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                await updateDoc(userRef, { "onboarding.englishLevel": selectedLevel });
+                console.log("✅ English level stored successfully in Firestore");
+            } catch (error) {
+                console.error("❌ Error storing English level:", error);
+            }
             navigate("/current-goal");
+        } else {
+            console.warn("⚠️ Please select an English level before continuing.");
         }
     };
 

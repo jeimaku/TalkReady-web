@@ -1,34 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom"; // ✅ Import Link for navigation
+import { Link } from "react-router-dom";
+import { db } from "../../firebase/firebase"; // Import Firebase configuration
+import { collection, getDocs } from "firebase/firestore";
 import "./course.css";
-
-const courses = [
-  { 
-    id: "eng-comm-skills", 
-    title: "Grammar & Pronunciation for BPO Professionals", 
-    level: "B2", 
-    category: "Speaking", 
-    status: "Available", 
-    lessons: 25, 
-    img: "communication.png", 
-    color: "bg-blue-100", 
-    icon: "🗣️" 
-  }
-];
 
 function CourseCard({ course }) {
   return (
     <Link to={`/course/${course.id}`} className="no-underline">
       <motion.div 
-        className={`course-card ${course.color}`}
+        className={`course-card ${course.color || 'bg-gray-100'}`}
         whileHover={{ scale: 1.05, boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)" }}
         whileTap={{ scale: 0.98 }}
       >
-        <div className="text-5xl">{course.icon}</div>
+        <div className="text-5xl">{course.icon || "📚"}</div>
         <h3 className="course-title mt-2">{course.title}</h3>
-        <p className="course-level">{course.level}</p>
-        <p className="course-lessons">Lessons: {course.lessons}</p>
+        <p className="course-level">{course.level || "Unknown Level"}</p>
+        <p className="course-lessons">Lessons: {course.lessons ? course.lessons.join(', ') : "N/A"}</p>
       </motion.div>
     </Link>
   );
@@ -36,7 +24,21 @@ function CourseCard({ course }) {
 
 function Courses() {
   const [search, setSearch] = useState('');
+  const [courses, setCourses] = useState([]);
   const [filter, setFilter] = useState({ category: '', status: '', level: '' });
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "courses"));
+        const coursesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setCourses(coursesData);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const resetFilter = (filterType) => {
     setFilter({ ...filter, [filterType]: '' });
@@ -83,9 +85,13 @@ function Courses() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        {filteredCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
-        ))}
+        {filteredCourses.length > 0 ? (
+          filteredCourses.map((course) => (
+            <CourseCard key={course.id} course={course} />
+          ))
+        ) : (
+          <p className="text-center text-gray-500">No courses found.</p>
+        )}
       </motion.div>
     </div>
   );

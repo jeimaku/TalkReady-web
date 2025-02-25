@@ -3,6 +3,10 @@ import { Link } from "react-router-dom";
 import { FaRegClock, FaRegStar, FaChevronLeft, FaChevronRight } from "react-icons/fa"; // ✅ Fixed import
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/authContext"; // Import the useAuth hook
+import { Radar } from 'react-chartjs-2';
+import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Tooltip, Legend);
 
 const HomePage = () => {
   const { currentUser } = useAuth();
@@ -10,6 +14,9 @@ const HomePage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioFile, setAudioFile] = useState(null);
   const featuredRef = useRef(null);
+
+  const [selectedCategory, setSelectedCategory] = useState("Grammar");
+
 
   const firstName = currentUser?.displayName?.split(" ")[0] || "User";
   const lastName = currentUser?.displayName?.split(" ")[1] || "";
@@ -44,6 +51,41 @@ const HomePage = () => {
     }
   };
   
+  // Placeholder scores for each category (Replace with actual data)
+  const skillData = {
+    Grammar: [80, 40, 50, 60, 70],
+    Fluency: [55, 85, 65, 75, 60],
+    Interaction: [45, 55, 85, 65, 75],
+    Pronunciation: [70, 60, 80, 90, 85],
+    Vocabulary: [50, 75, 60, 80, 90],
+  };
+
+  const progressData = {
+    labels: ["Grammar", "Fluency", "Interaction", "Pronunciation", "Vocabulary"],
+    datasets: [
+      {
+        label: `${selectedCategory} Progress`,
+        data: skillData[selectedCategory],
+        backgroundColor: "rgba(0, 119, 179, 0.2)",
+        borderColor: "#0077B3",
+        borderWidth: 2,
+        pointBackgroundColor: "#0077B3",
+      },
+    ],
+  };
+
+  const radarOptions = {
+    scales: {
+      r: {
+        angleLines: { display: true },
+        suggestedMin: 0,
+        suggestedMax: 100,
+      },
+    },
+    plugins: {
+      legend: { display: false },
+    },
+  };
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen h-full w-full">
@@ -60,6 +102,38 @@ const HomePage = () => {
         <p className="text-lg text-gray-700 mt-2">
           Your AI-powered platform for improving English for BPO roles
         </p>
+      </motion.div>
+
+      {/* Skill Tracker with Category Selection */}
+      <motion.div
+        className="w-full max-w-3xl bg-white p-6 rounded-lg shadow-lg text-center mb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <h3 className="text-2xl font-semibold text-[#0077B3] mb-4">Skill Progress Tracker</h3>
+        
+        {/* Skill Selection Tabs */}
+        <div className="flex justify-center gap-2 mb-4">
+          {["Grammar", "Fluency", "Interaction", "Pronunciation", "Vocabulary"].map((category) => (
+            <button
+              key={category}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition duration-300 ${
+                selectedCategory === category
+                  ? "bg-[#0077B3] text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
+        {/* Radar Chart for Selected Skill */}
+        <div className="w-80 mx-auto">
+          <Radar data={progressData} options={radarOptions} />
+        </div>
       </motion.div>
 
       {/* User Stats */}
@@ -91,7 +165,7 @@ const HomePage = () => {
           to="/test"
           className="mt-4 inline-block bg-white text-[#0077B3] py-2 px-6 rounded-full hover:bg-gray-300 transition duration-300"
         >
-          Start Test
+          Start Practice
         </Link>
       </motion.div>
 

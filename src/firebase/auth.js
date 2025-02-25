@@ -29,9 +29,10 @@ export const doCreateUserWithEmailAndPassword = async (email, password, firstNam
       lastName: lastName || "Unknown",
       email: email,
       mobileNumber: mobileNumber || "N/A",
-      isNewUser: true, // ✅ Mark user as new
+      isNewUser: true,
       createdAt: new Date().toISOString(),
-    });
+      onboarding: {} // Initialize an empty onboarding object
+    });    
 
     console.log("✅ User data successfully stored in Firestore:", user.uid);
 

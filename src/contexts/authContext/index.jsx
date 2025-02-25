@@ -63,20 +63,32 @@ export function AuthProvider({ children }) {
   };
 
   // ✅ Function to mark onboarding as completed
+  // const markOnboardingComplete = async () => {
+  //   if (currentUser) {
+  //     const userRef = doc(db, "users", currentUser.uid);
+  //     try {
+  //       const userDoc = await getDoc(userRef);
+  //       if (userDoc.exists()) {
+  //         await updateDoc(userRef, { hasCompletedOnboarding: true });
+  //       } else {
+  //         await setDoc(userRef, { hasCompletedOnboarding: true }, { merge: true });
+  //       }
+  //       setHasCompletedOnboarding(true);
+  //     } catch (error) {
+  //       console.error("Error updating onboarding status:", error);
+  //     }
+  //   }
+  // };
+
   const markOnboardingComplete = async () => {
     if (currentUser) {
-      const userRef = doc(db, "users", currentUser.uid);
-      try {
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists()) {
-          await updateDoc(userRef, { hasCompletedOnboarding: true });
-        } else {
-          await setDoc(userRef, { hasCompletedOnboarding: true }, { merge: true });
+        const userRef = doc(db, "users", currentUser.uid);
+        try {
+            await updateDoc(userRef, { hasCompletedOnboarding: true });
+            setHasCompletedOnboarding(true);
+        } catch (error) {
+            console.error("Error updating onboarding status:", error);
         }
-        setHasCompletedOnboarding(true);
-      } catch (error) {
-        console.error("Error updating onboarding status:", error);
-      }
     }
   };
 

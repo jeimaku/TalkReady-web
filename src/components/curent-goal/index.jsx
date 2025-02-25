@@ -3,8 +3,13 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { FaCheckCircle, FaBullseye } from "react-icons/fa"; // Icons for UI improvement
 
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase/firebase";
+import { useAuth } from '../../contexts/authContext';
+
 const CurrentGoal = () => {
   const [selectedGoal, setSelectedGoal] = useState([]);
+  const { currentUser } = useAuth(); // Get the current user
   const navigate = useNavigate();
 
   const goals = [
@@ -14,9 +19,23 @@ const CurrentGoal = () => {
     "Improve my English for work",
   ];
 
-  const handleContinue = () => {
-    if (selectedGoal.length > 0) {
-      navigate("/learning-preference");
+  const handleContinue = async () => {
+    if (selectedGoal.length === 0) {
+      console.warn("⚠️ Please select at least one goal before continuing.");
+      return;
+    }
+
+    if (currentUser) {
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, { "onboarding.currentGoal": selectedGoal });
+        console.log("✅ Current goal stored successfully in Firestore:", selectedGoal);
+        navigate("/learning-preference");
+      } catch (error) {
+        console.error("❌ Error storing current goal:", error);
+      }
+    } else {
+      console.error("❌ No authenticated user found.");
     }
   };
 

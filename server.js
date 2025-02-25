@@ -12,35 +12,44 @@ app.use(express.json());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-app.post("/transcribe", upload.single("audio"), async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: "No file received." });
-        }
+const DEEPGRAM_API_KEY = process.env.REACT_APP_DEEPGRAM_API_KEY;
 
-        console.log("File received:", req.file);
-
-        // Send the audio file to OpenAI Whisper API
-        const response = await axios.post(
-            "https://api.openai.com/v1/audio/transcriptions",
-            {
-                file: req.file.buffer, // Send audio buffer
-                model: "whisper-1",
-                language: "en",
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
-                    "Content-Type": "multipart/form-data",
-                },
-            }
-        );
-
-        res.json({ transcription: response.data.text });
-    } catch (error) {
-        console.error("Transcription Error:", error);
-        res.status(500).json({ error: "Failed to transcribe audio" });
+// ✅ Route to Analyze Pronunciation Using Deepgram (direct audio file upload)
+app.post("/analyze-pronunciation-deepgram", upload.single("audio"), async (req, res) => {
+  try {
+    const { file } = req;
+    if (!file) {
+      return res.status(400).json({ error: "No audio file uploaded." });
     }
+
+    const audioBuffer = file.buffer;  // Buffer containing the audio file
+    const audioType = file.mimetype;  // MIME type of the audio file
+
+    // Send the audio file directly to Deepgram API for analysis
+    const response = await axios.post(
+      "https://api.deepgram.com/v1/analyze",
+      audioBuffer,
+      {
+        headers: {
+          Authorization: `Bearer ${DEEPGRAM_API_KEY}`,
+          "Content-Type": audioType,
+        },
+      }
+    );
+
+    if (response.data) {
+      const transcription = response.data.results.channels[0].alternatives[0].transcript;
+      res.json({
+        message: transcription ? 'Your pronunciation is correct!' : 'Oops! Try again.',
+        transcription: transcription || 'No transcription available.',
+      });
+    } else {
+      res.status(500).json({ error: "Failed to analyze pronunciation with Deepgram." });
+    }
+  } catch (error) {
+    console.error("❌ Deepgram Pronunciation Analysis Error:", error.response?.data || error.message);
+    res.status(500).json({ error: "Error analyzing pronunciation with Deepgram." });
+  }
 });
 
 const PORT = 5000;

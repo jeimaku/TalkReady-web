@@ -3,8 +3,13 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { FaVideo, FaComments, FaBookReader, FaLayerGroup } from "react-icons/fa"; // Icons for UI improvement
 
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase/firebase";
+import { useAuth } from '../../contexts/authContext';
+
 const LearningPreference = () => {
   const [selectedPreference, setSelectedPreference] = useState(null);
+  const { currentUser } = useAuth(); // Get the current user
   const navigate = useNavigate();
 
   const preferences = [
@@ -14,9 +19,23 @@ const LearningPreference = () => {
     { name: "A mix of all", icon: <FaLayerGroup /> },
   ];
 
-  const handleContinue = () => {
-    if (selectedPreference) {
-      navigate("/daily-practice-goal");
+  const handleContinue = async () => {
+    if (!selectedPreference) {
+      console.warn("⚠️ Please select a learning preference before continuing.");
+      return;
+    }
+
+    if (currentUser) {
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, { "onboarding.learningPreference": selectedPreference });
+        console.log("✅ Learning preference stored successfully in Firestore:", selectedPreference);
+        navigate("/daily-practice-goal");
+      } catch (error) {
+        console.error("❌ Error storing learning preference:", error);
+      }
+    } else {
+      console.error("❌ No authenticated user found.");
     }
   };
 
