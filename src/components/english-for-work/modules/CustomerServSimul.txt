@@ -1,0 +1,328 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const MicTester = () => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [micStatus, setMicStatus] = useState('Click "Start Test" to begin');
+  const [audioContext, setAudioContext] = useState(null);
+  const [analyserNode, setAnalyserNode] = useState(null);
+  const [micStream, setMicStream] = useState(null);
+  const [audioSource, setAudioSource] = useState(null);
+  const [audioOutput, setAudioOutput] = useState(null);  
+
+  useEffect(() => {
+    if (audioContext && analyserNode) {
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const checkAudioLevels = () => {
+        analyserNode.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        setAudioLevel(average);
+
+        if (average < 50) {
+          setMicStatus('Low audio input detected. Please speak louder.');
+        } else if (average < 100) {
+          setMicStatus('Audio input is okay, but there may be background noise.');
+        } else {
+          setMicStatus('Good audio input detected!');
+        }
+
+        if (isRecording) {
+          requestAnimationFrame(checkAudioLevels);
+        }
+      };
+
+      checkAudioLevels();
+    }
+  }, [audioContext, analyserNode, isRecording]);
+
+  const startMicTest = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicStream(stream);
+      const context = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = context.createAnalyser();
+      setAudioContext(context);
+      setAnalyserNode(analyser);
+
+      const source = context.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+
+      const output = context.createGain();
+      source.connect(output);
+      output.connect(context.destination);  
+
+      setAudioSource(source);
+      setAudioOutput(output);
+
+      setIsRecording(true);
+      setMicStatus('Recording... Speak into the mic to test.');
+    } catch (err) {
+      setMicStatus('Error accessing the microphone: ' + err.message);
+    }
+  };
+
+  const stopMicTest = () => {
+    if (micStream) {
+      micStream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      setMicStatus('Test stopped. You can start again.');
+    }
+
+    if (audioSource) {
+      audioSource.disconnect();
+    }
+
+    if (audioOutput) {
+      audioOutput.disconnect();
+    }
+  };
+
+  return (
+    <div className="mic-tester-container mb-8">
+      <h2 className="text-xl font-semibold text-center">Microphone Test</h2>
+      <p>{micStatus}</p>
+      <div className="text-center">
+        <button
+          onClick={startMicTest}
+          disabled={isRecording}
+          className="w-full p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 mb-2"
+        >
+          Start Test
+        </button>
+        <button
+          onClick={stopMicTest}
+          disabled={!isRecording}
+          className="w-full p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105"
+        >
+          Stop Test
+        </button>
+      </div>
+      <div className="audio-level-meter mt-4" style={{ width: `${audioLevel}%`, backgroundColor: audioLevel < 50 ? 'red' : audioLevel < 100 ? 'yellow' : 'green' }}>
+        <span>{audioLevel}%</span>
+      </div>
+    </div>
+  );
+};
+
+const CustomerServiceSimul = () => {
+  const [isCallStarted, setIsCallStarted] = useState(false);
+  const [userResponse, setUserResponse] = useState("");
+  const [customerSpeech, setCustomerSpeech] = useState("");
+  const [responseFeedback, setResponseFeedback] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  const [performanceScore, setPerformanceScore] = useState(null);
+
+  const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
+
+  const [recognition, setRecognition] = useState(null);
+
+  useEffect(() => {
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognitionAPI();
+
+      recognitionInstance.continuous = true;
+      recognitionInstance.lang = 'en-US';
+      recognitionInstance.interimResults = true;
+
+      recognitionInstance.onstart = () => {
+        console.log("Speech recognition started");
+        setIsRecording(true);
+      };
+
+      recognitionInstance.onresult = (event) => {
+        let speechText = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          speechText += event.results[i][0].transcript;
+        }
+        console.log("Real-time recognized text: ", speechText);
+        setUserResponse((prevResponse) => prevResponse + " " + speechText);
+      };
+
+      recognitionInstance.onerror = (event) => {
+        console.error("Speech recognition error: ", event);
+        setIsRecording(false);
+      };
+
+      recognitionInstance.onend = () => {
+        console.log("Speech recognition ended");
+        setIsRecording(false);
+      };
+
+      setRecognition(recognitionInstance);
+    } else {
+      alert("Your browser does not support speech recognition.");
+    }
+  }, []);
+
+  const generateCustomerSpeech = async () => {
+    try {
+      const prompt = "Generate a random customer inquiry for a call center.";
+      const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: 'You are a helpful customer service representative.' },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 100,
+        temperature: 0.7,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      let generatedSpeech = response.data.choices[0].message.content.trim();
+      generatedSpeech = generatedSpeech.replace(/"/g, '').trim();
+
+      setCustomerSpeech(generatedSpeech);
+
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(generatedSpeech);
+        const voices = speechSynthesis.getVoices();
+        const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female')) || voices[0];
+
+        utterance.voice = femaleVoice;
+        speechSynthesis.speak(utterance);
+      }
+    } catch (error) {
+      console.error('Error generating customer speech:', error);
+      setCustomerSpeech('Sorry, we encountered an error generating the inquiry.');
+    }
+  };
+
+  const startCall = () => {
+    setIsCallStarted(true);
+    generateCustomerSpeech();
+    setIsWaitingForResponse(true);
+  };
+
+  const stopRecording = () => {
+    recognition.stop();
+    setIsRecording(false);
+  };
+
+  const processAudio = async () => {
+    try {
+      const transcription = userResponse;
+      const feedback = await analyzeWithOpenAI(transcription);
+      setResponseFeedback(feedback);
+      setPerformanceScore({ grammar: 90, tone: 75, vocabulary: 80 });
+    } catch (error) {
+      console.error('Error processing audio:', error);
+    }
+  };
+
+  const handleRetry = () => {
+    setResponseFeedback("");
+    setIsWaitingForResponse(true);
+    setUserResponse("");
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex justify-center items-center">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-3/4 md:w-2/3 lg:w-1/2 flex flex-col md:flex-row items-center justify-center">
+        <div className="flex flex-col items-center mb-6 md:mb-0 md:w-1/3">
+          <img
+            src="https://storage.googleapis.com/coldcalr-imgs/Chad%20Rivers.webp"
+            alt="Customer"
+            className="w-24 h-24 rounded-full mb-4 transition-transform transform hover:scale-110 duration-300"
+          />
+          <h2 className="text-2xl font-semibold text-blue-600">Samantha Lee</h2>
+          <p className="text-sm text-gray-500">Potential Client</p>
+        </div>
+
+        <div className="md:w-2/3 flex flex-col space-y-6">
+          <h1 className="text-xl font-semibold text-center mb-4">Customer Service Simulation</h1>
+
+          {!isCallStarted ? (
+            <div className="mb-4 text-center">
+              <button
+                onClick={startCall}
+                className="w-full p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
+              >
+                Start Call Simulation
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4">
+                <p className="font-bold text-xl text-gray-700">Customer (AI):</p>
+                <p className="bg-gray-200 p-4 rounded-lg text-gray-600 shadow-lg">{customerSpeech}</p>
+              </div>
+
+              {isWaitingForResponse && (
+                <div className="mb-4">
+                  <p className="text-gray-600 text-xl">The customer is waiting for your response...</p>
+                  <button
+                    onClick={() => recognition.start()}
+                    className="w-full p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105"
+                  >
+                    Start Recording
+                  </button>
+                  <button
+                    onClick={stopRecording}
+                    className="w-full p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105 mt-2"
+                  >
+                    Stop Recording
+                  </button>
+                </div>
+              )}
+
+              {isRecording && <p className="text-red-500 text-xl">Recording...</p>}
+
+              {userResponse && (
+                <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-lg">
+                  <p className="font-bold text-lg">Your Response:</p>
+                  <p className="text-gray-600">{userResponse}</p>
+                </div>
+              )}
+
+              {responseFeedback && (
+                <div className="mt-4 p-4 bg-green-100 rounded-lg text-green-700 shadow-lg">
+                  <p><strong>Feedback:</strong></p>
+                  <p><strong>Grammar:</strong> {responseFeedback.grammar}</p>
+                  <p><strong>Vocabulary:</strong> {responseFeedback.vocabulary}</p>
+                  <p><strong>Tone:</strong> {responseFeedback.tone}</p>
+                </div>
+              )}
+
+              {performanceScore && (
+                <div className="mt-4 p-4 bg-blue-100 rounded-lg text-blue-700 shadow-lg">
+                  <p><strong>Performance Score:</strong></p>
+                  <p><strong>Grammar:</strong> {performanceScore.grammar}%</p>
+                  <p><strong>Vocabulary:</strong> {performanceScore.vocabulary}%</p>
+                  <p><strong>Tone:</strong> {performanceScore.tone}%</p>
+                </div>
+              )}
+
+              <div className="mt-4 text-center">
+                <button
+                  onClick={handleRetry}
+                  className="w-full p-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 transform hover:scale-105"
+                >
+                  Retry Response
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="w-full max-w-4xl bg-white p-6 mt-6 rounded-lg shadow-lg">
+        <MicTester />
+      </div>
+    </div>
+  );
+};
+
+export default CustomerServiceSimul;

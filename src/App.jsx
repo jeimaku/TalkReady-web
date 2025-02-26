@@ -28,6 +28,9 @@ import IntroEnglishPronunciation from "./components/courses/course-details/intro
 //assessments
 import PhoneticChartActivity from "./components/courses/course-details/phonetic-chart-act/PhoneticChartActivity";
 
+//english-for-work page
+import CustomerServiceSimulation from "./components/english-for-work/modules/CustomerServSimul";
+
 
 function App() {
   const { userLoggedIn, hasCompletedOnboarding } = useAuth();
@@ -76,14 +79,18 @@ function App() {
     { path: "/job-interview-prep", element: <ProtectedRoute element={<JobInterviewPrep setProgress={setProgress} />} /> },
     { path: "/my-reports", element: <ProtectedRoute element={<MyReports setProgress={setProgress} />} /> },
     { path: "/test", element: <ProtectedRoute element={<Test setProgress={setProgress} />} /> },
-    { path: "/english-for-work", element: <ProtectedRoute element={<EnglishForWork setProgress={setProgress} />} /> },
     { path: "chatbot", element: <ProtectedRoute element={<Chatbot setProgress={setProgress} />} /> },
 
     // ✅ Course Details Routes
     { path: "/course/:courseId", element: <ProtectedRoute element={<IntroEnglishPronunciation setProgress={setProgress} />} /> },
 
     // ✅ Course Details Routes
-    { path: "course/:courseId/phonetic-chart-assessment", element: <PhoneticChartActivity setProgress={setProgress} /> }
+    { path: "course/:courseId/phonetic-chart-assessment", element: <PhoneticChartActivity setProgress={setProgress} /> },
+
+    // ✅ Eng for work page Details Routes
+    { path: "/english-for-work", element: <ProtectedRoute element={<EnglishForWork setProgress={setProgress} />} /> },
+    { path: "/english-for-work/modules/CustomerServSimul", element: <CustomerServiceSimulation setProgress={setProgress} /> },
+
 
   
   ];
