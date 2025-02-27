@@ -107,6 +107,8 @@ function App() {
 
         location.pathname !== "/course/course-details/assessment/phonetic" &&
 
+        location.pathname !== "/english-for-work/modules/CustomerServSimul" &&
+
         // location.pathname !== "/Chatbot" && 
         <Header />}
       

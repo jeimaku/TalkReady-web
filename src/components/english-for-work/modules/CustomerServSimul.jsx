@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FaMicrophone, FaStop } from 'react-icons/fa'; // FontAwesome Icons
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 // Main Customer Service Simulation Component
 const CustomerServiceSimul = () => {
@@ -12,53 +14,112 @@ const CustomerServiceSimul = () => {
   const [audioURL, setAudioURL] = useState(""); // Store the audio URL from Cloudinary
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [performanceScore, setPerformanceScore] = useState(null);
+  const [showBackModal, setShowBackModal] = useState(false); // Modal state
+  const [conversation, setConversation] = useState([]); 
+
+  const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
+
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+
 
   const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation]);
 
   // Initialize Speech Recognition
   const [recognition, setRecognition] = useState(null);
 
   useEffect(() => {
-    // Set up SpeechRecognition if the browser supports it
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+    if (conversation.length > 0) {
+        const lastMessage = conversation[conversation.length - 1];
+        if (lastMessage.sender === "customer") {
+            speakText(lastMessage.text);
+        }
+    }
+}, [conversation]);
+
+
+useEffect(() => {
+  if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognitionInstance = new SpeechRecognitionAPI();
 
-      recognitionInstance.continuous = false;  // We only want to capture the speech when the stop button is pressed
-      recognitionInstance.lang = 'en-US';  // Set language to English
-      recognitionInstance.interimResults = false;  // Do not show results in real-time, only after stopping
+      recognitionInstance.continuous = true;  // Keeps listening without stopping automatically
+      recognitionInstance.lang = "en-US";
+      recognitionInstance.interimResults = false;
 
       recognitionInstance.onstart = () => {
-        console.log("Speech recognition started");
-        setIsRecording(true); // Show recording status
+          console.log("Speech recognition started");
+          setIsRecording(true);
       };
 
       recognitionInstance.onresult = (event) => {
-        let speechText = "";
-        // Collect the result after the stop button is pressed
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          speechText += event.results[i][0].transcript;
-        }
-        console.log("Final recognized text: ", speechText);
-        setUserResponse(speechText);  // Set the transcribed text after stopping the recording
+          let speechText = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+              speechText += event.results[i][0].transcript;
+          }
+          console.log("Final recognized text:", speechText);
+
+          // Prevent duplicate messages
+          if (userResponse !== speechText) {
+              setUserResponse(speechText);
+          }
       };
 
       recognitionInstance.onerror = (event) => {
-        console.error("Speech recognition error: ", event);
-        setIsRecording(false);
+          console.error("Speech recognition error:", event);
+          setIsRecording(false);
       };
 
       recognitionInstance.onend = () => {
         console.log("Speech recognition ended");
-        setIsRecording(false); // Stop recording when recognition ends
-      };
+    
+        if (isRecording) {
+            console.log("Restarting speech recognition...");
+            setTimeout(() => {
+                if (!isRecording) return; // Ensure it only restarts when needed
+                recognitionInstance.start();
+            }, 500);
+        }
+    };
+    
 
-      setRecognition(recognitionInstance);  // Set the recognition instance
-
-    } else {
+      setRecognition(recognitionInstance);
+  } else {
       alert("Your browser does not support speech recognition.");
+  }
+}, []);
+
+
+  // **PROCESS AUDIO AFTER USER RESPONSE UPDATES**
+  useEffect(() => {
+    if (userResponse.trim() !== "") {
+        console.log("User response updated:", userResponse);
+        
+        setConversation(prev => {
+            if (prev.some(msg => msg.sender === "user" && msg.text === userResponse)) {
+                return prev;
+            }
+
+            const updatedConversation = [
+                ...prev,
+                { sender: "user", text: userResponse }
+            ];
+
+            setIsRecording(false); // Immediately remove "Recording..." when response is processed
+            setTimeout(() => processAudio(userResponse), 500); 
+
+            return updatedConversation;
+        });
+
+        setUserResponse(""); 
     }
-  }, []);
+}, [userResponse]);
+
+  
 
   // Generate customer speech using OpenAI API
   const generateCustomerSpeech = async () => {
@@ -86,7 +147,9 @@ const CustomerServiceSimul = () => {
       // Remove the quotation marks from the response
       generatedSpeech = generatedSpeech.replace(/"/g, '').trim();
 
-      setCustomerSpeech(generatedSpeech); // Set the AI-generated inquiry as customer speech
+      setConversation([{ sender: "customer", text: generatedSpeech }]); 
+      speakText(generatedSpeech);
+       // Set the AI-generated inquiry as customer speech
 
       // Use Web Speech API to speak the customer speech
       if ('speechSynthesis' in window) {
@@ -108,102 +171,200 @@ const CustomerServiceSimul = () => {
     }
   };
 
-  // Generate customer follow-up based on user response
-const generateCustomerFollowUp = async (userResponse) => {
+  const generateCustomerFollowUp = async (userResponse) => {
     try {
-      const prompt = `Generate a customer follow-up based on the following user response in a customer service call: "${userResponse}"`;
-  
-      const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: 'You are a helpful customer service representative.' },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 100,
-        temperature: 0.7,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      });
-  
-      let generatedFollowUp = response.data.choices[0].message.content.trim();
-      if (generatedFollowUp) {
-        generatedFollowUp = generatedFollowUp.replace(/"/g, '').trim();
-        setCustomerSpeech(generatedFollowUp);  // Ensure this updates the UI correctly
-  
-        // Use Web Speech API to speak the customer follow-up
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(generatedFollowUp);
-          const voices = speechSynthesis.getVoices();
-          const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
-  
-          if (femaleVoice) {
-            utterance.voice = femaleVoice; // Select the female voice
-          } else {
-            utterance.voice = voices[0]; // If no female voice is found, use the first available voice
-          }
-  
-          speechSynthesis.speak(utterance);
+        console.log("Generating follow-up based on user response:", userResponse);
+        setIsGeneratingResponse(true); // Show AI is generating response
+        
+        const prompt = `The customer service agent responded: "${userResponse}". Provide a professional, polite follow-up as a customer in a call.`;        
+
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: 'You are a customer continuing a conversation in a call center scenario.' },
+                { role: 'user', content: prompt },
+            ],
+            max_tokens: 100,
+            temperature: 0.7,
+        }, {
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        let generatedFollowUp = response.data.choices[0].message.content.trim();
+        console.log("Generated Follow-Up:", generatedFollowUp);
+
+        if (generatedFollowUp) {
+            setTimeout(() => {
+                setConversation(prev => [
+                    ...prev,
+                    { sender: "customer", text: generatedFollowUp }
+                ]);
+                
+                speakText(generatedFollowUp);
+                setIsWaitingForResponse(true); 
+                setIsGeneratingResponse(false); // Hide indicator after response
+            }, 1000);
+        } else {
+            console.warn("Generated follow-up is empty");
+            setIsGeneratingResponse(false); // Hide indicator if error
         }
-      } else {
-        console.error('Generated follow-up is empty');
-      }
     } catch (error) {
-      console.error('Error generating customer follow-up:', error);
-      setCustomerSpeech('Sorry, we encountered an error generating the follow-up response.');
-    }
-  };
-  
-
-  const startCall = () => {
-    setIsCallStarted(true);
-    generateCustomerSpeech();  // Generate initial customer speech when the call starts
-    setIsWaitingForResponse(true);
-  };
-
-  const stopRecording = () => {
-    recognition.stop(); // Stop the recognition when the user presses the stop button
-    setIsRecording(false);
-  };
-
-  const processAudio = async () => {
-    try {
-      const transcription = userResponse;  // Use the transcribed user response
-      const feedback = await analyzeWithOpenAI(transcription);  // Replace with your OpenAI logic for feedback
-      setResponseFeedback(feedback);
-      setPerformanceScore({
-        grammar: 90,
-        tone: 75,
-        vocabulary: 80,
-      });
-
-      // Generate customer follow-up based on the user's response
-      generateCustomerFollowUp(transcription);
-      
-      // Make the next customer speech after AI response
-      setIsWaitingForResponse(false);  // Allow the AI to proceed without waiting
-    } catch (error) {
-      console.error('Error processing audio:', error);
+        console.error('Error generating customer follow-up:', error);
+        setCustomerSpeech('Sorry, we encountered an error generating the follow-up response.');
+        setIsGeneratingResponse(false); // Hide indicator on error
     }
 };
 
 
-  const handleRetry = () => {
-    setResponseFeedback("");
-    setIsWaitingForResponse(true);
-    setUserResponse("");
+  // Process Audio After User Response
+  const processAudio = async () => {
+    try {
+      if (!userResponse.trim()) {
+        console.warn("User response is empty, skipping AI follow-up.");
+        return;
+      }
+      console.log("Processing user response:", userResponse);
+      setTimeout(async () => {
+        await generateCustomerFollowUp(userResponse);
+        setIsWaitingForResponse(false); // UI updates AFTER AI responds
+    }, 1000); // Delay AI response by 1 second for natural flow
+    
+    } catch (error) {
+      console.error("Error processing audio:", error);
+    }
+    setIsRecording(false); // Ensure UI updates immediately when AI response is shown
+
   };
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-3/4 md:w-2/3 lg:w-1/2 flex flex-col items-center justify-center">
+  const stopRecording = () => {
+    if (recognition) {
+        console.log("Manually stopping recording...");
+        setIsRecording(false);  
+        recognition.stop();
+        recognition.abort();  // Force stop recognition
+    }
+};
+
+
+  // Speak Text using Web Speech API
+  const speakText = (text) => {
+    if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      speechSynthesis.speak(utterance);
+    }
+  };
+
+  // Start Call
+  const startCall = () => {
+    resetSimulation();  // 🔥 Ensure previous data is cleared
+    setIsCallStarted(true);
+    generateCustomerSpeech();
+    setIsWaitingForResponse(true);
+};
+
+
+
+  const handleRetry = () => {
+    setConversation(prev => {
+        // Remove the last two messages (user + AI response)
+        if (prev.length >= 2) {
+            return prev.slice(0, -2);
+        }
+        return prev;
+    });
+
+    setResponseFeedback("");  // Reset feedback
+    setUserResponse("");  // Clear user input
+    setIsWaitingForResponse(true);  // Allow user to record again
+};
+
+
+  // Function to handle back navigation (Show confirmation modal)
+  const handleBack = () => {
+    if (isCallStarted) {
+      setShowBackModal(true); // Show the modal instead of navigating directly
+    } else {
+      resetSimulation();  // 🔥 Reset before navigating
+      navigate("/english-for-work");
+    }
+  };
+
+  const resetSimulation = () => {
+    setConversation([]);  // 🔥 Clears previous inquiries/messages
+    setUserResponse("");  // Clears user input
+    setResponseFeedback(""); // Clears AI feedback
+    setPerformanceScore(null);  // Resets any scoring
+    setIsRecording(false); // Ensures recording is stopped
+    setIsWaitingForResponse(false); // Reset button visibility
+};
+
+
+  // Function to confirm going back
+  const confirmBack = () => {
+    setIsCallStarted(false); 
+    setShowBackModal(false);
+  };
+
+  // Function to cancel going back
+  const cancelBack = () => {
+    setShowBackModal(false);
+  };
   
+  const startRecording = () => {
+    if (!recognition) {
+        console.warn("Speech recognition instance not initialized.");
+        return;
+    }
+
+    if (isRecording) {
+        console.log("Speech recognition is already running.");
+        return; // Prevent multiple starts
+    }
+
+    try {
+        console.log("Stopping previous recognition before starting a new one...");
+        recognition.stop(); // Stop previous recognition
+        recognition.abort(); // Ensure it fully stops
+
+        setTimeout(() => { // Add a small delay before restarting
+            console.log("Starting speech recognition...");
+            recognition.start();
+            setIsRecording(true);
+        }, 500);  // Small delay to prevent immediate conflict
+    } catch (error) {
+        console.error("Error starting speech recognition:", error);
+    }
+};
+
+
+
+  return (
+    <motion.div 
+      className="min-h-screen bg-gray-100 flex justify-center items-center relative"
+      initial={{ opacity: 0, scale: 0.95 }}  // Animation starts with lower opacity & smaller scale
+      animate={{ opacity: 1, scale: 1 }}  // Ends with full opacity & normal scale
+      transition={{ duration: 0.5 }}  // Smooth transition
+      >
+      
+      {/* Back Button */}
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={handleBack}
+          className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-all duration-300"
+        >
+          ← Back
+        </button>
+      </div>
+
+
+      <div className="bg-white p-6 rounded-lg shadow-lg w-3/4 md:w-2/3 lg:w-1/2 flex flex-col items-center justify-center">
         {/* Customer Profile Column */}
         <div className="flex flex-col items-center mb-6 md:mb-0 md:w-1/3">
           <img
-            src="https://storage.googleapis.com/coldcalr-imgs/Chad%20Rivers.webp"
+            src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExY2JlcnhqZG81a2Z1ZWs2Zml6aHZkc2ZpcnBzcXh2bTB4Z2gybDI1bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/U3DcUscGKLEkzekLdb/giphy.gif"
             alt="Customer"
             className="w-32 h-32 rounded-full mb-6 transition-transform transform hover:scale-110 duration-300"
           />
@@ -231,30 +392,59 @@ const generateCustomerFollowUp = async (userResponse) => {
   
           {!isCallStarted ? (
             <div className="mb-6 text-center">
-              <button
-                onClick={startCall}
+              <motion.button
+                 whileHover={{ scale: 1.1 }} 
+                 whileTap={{ scale: 0.9 }} 
+                 onClick={startCall}
                 className="w-full p-4 bg-blue-500 text-white text-xl rounded-lg hover:bg-blue-600 transition-all duration-300 transform hover:scale-105"
               >
                 Start Call Simulation
-              </button>
+              </motion.button>
             </div>
           ) : (
             <>
-              {/* Customer's Message in a Chat Bubble */}
-              <div className="mb-6 flex items-start">
-                <div className="w-12 h-12 rounded-full bg-gray-400 flex items-center justify-center text-white mr-4">
-                  <span className="text-xl">S</span> {/* Initials or Icon for Customer */}
-                </div>
-                <div className="bg-blue-100 p-6 rounded-lg max-w-[70%] shadow-lg">
-                  <p className="text-lg">{customerSpeech}</p>
-                </div>
-              </div>
-  
+            <div ref={messagesEndRef} />
+            
+            <div className="w-full h-[450px] overflow-y-auto overflow-x-hidden px-3 pb-3 bg-white rounded-lg shadow-lg">
+              {conversation.map((msg, index) => (
+                <motion.div 
+                  key={index} className={`mb-6 flex ${msg.sender === "user" ? "flex-row-reverse" : ""}`}
+                  initial={{ opacity: 0, x: msg.sender === "user" ? 50 : -50 }}  
+                  animate={{ opacity: 1, x: 0 }}  
+                  transition={{ duration: 0.3 }}
+                  >
+                  <div className={`w-12 h-12 rounded-full ${msg.sender === "user" ? "bg-green-400" : "bg-gray-400"} flex items-center justify-center text-white ml-4 mr-4`}>
+                    <span className="text-xl">{msg.sender === "user" ? "M" : "S"}</span>
+                  </div>
+                  <div className={`p-4 rounded-lg max-w-[65%] shadow-lg ${msg.sender === "user" ? "bg-green-100" : "bg-blue-100"}`}>
+                    <p className="text-sm">{msg.text}</p>
+                  </div>
+                </motion.div>
+              ))}
+
+            {isGeneratingResponse && (
+                <motion.div 
+                className="flex items-start"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+                >
+                    <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center text-white ml-4 mr-4">
+                        <span className="text-xl">S</span> {/* Customer avatar placeholder */}
+                    </div>
+                    <div className="bg-blue-100 p-4 rounded-lg max-w-[70%] shadow-lg">
+                        <p className="text-gray-500 italic">Customer is typing...</p>
+                    </div>
+                </motion.div>
+            )}
+
+            </div>
+
               {/* User's Message in a Chat Bubble */}
               {userResponse && (
                 <div className="mb-6 flex items-start flex-row-reverse">
                   <div className="w-12 h-12 rounded-full bg-green-400 flex items-center justify-center text-white ml-4 mr-4">
-                    <span className="text-xl">M</span> {/* Initials or Icon for User */}
+                    <span className="text-xl">M</span>
                   </div>
                   <div className="bg-green-100 p-6 rounded-lg max-w-[70%] shadow-lg">
                     <p className="text-lg">{userResponse}</p>
@@ -262,24 +452,24 @@ const generateCustomerFollowUp = async (userResponse) => {
                 </div>
               )}
   
-              {/* Speech Recording and Retry Buttons in a Single Row */}
+              {/* Speech Recording and Retry Buttons */}
               {isWaitingForResponse && (
                 <div className="mb-6 flex justify-between items-center space-x-16">
                   <button
-                    onClick={() => recognition.start()}
-                    className="w-1/3 p-4 bg-green-500 text-white text-lg rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center justify-center"
+                    onClick={startRecording}  // ✅ Calls the function with safety checks
+                    className="w-1/4 p-3 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center justify-center"
                   >
-                    <FaMicrophone size={24} /> {/* Microphone Icon */}
+                    <FaMicrophone size={24} />
                   </button>
                   <button
                     onClick={stopRecording}
-                    className="w-1/3 p-4 bg-red-500 text-white text-lg rounded-lg hover:bg-red-600 transition-all duration-300 flex items-center justify-center"
+                    className="w-1/4 p-3 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-all duration-300 flex items-center justify-center"
                   >
-                    <FaStop size={24} /> {/* Stop Icon */}
+                    <FaStop size={24} />
                   </button>
                   <button
                     onClick={handleRetry}
-                    className="w-1/3 p-4 bg-yellow-500 text-white text-lg rounded-lg hover:bg-yellow-600 transition-all duration-300 flex items-center justify-center"
+                    className="w-1/4 p-3 bg-yellow-500 text-white text-sm rounded-lg hover:bg-yellow-600 transition-all duration-300 flex items-center justify-center"
                   >
                     Retry Response
                   </button>
@@ -311,7 +501,33 @@ const generateCustomerFollowUp = async (userResponse) => {
           )}
         </div>
       </div>
-    </div>
+        
+      {/* Confirmation Modal for Back Button */}
+      {showBackModal && (
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96 animate-fadeIn">
+            <h2 className="text-xl font-semibold text-gray-700">Exit Simulation?</h2>
+            <p className="text-gray-600 mt-2">Are you sure you want to exit? Your progress will be lost.</p>
+
+            {/* Buttons */}
+            <div className="mt-4 flex justify-end space-x-4">
+              <button
+                onClick={cancelBack}
+                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBack}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+              >
+                Yes, Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 };
 

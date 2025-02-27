@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaRegClock, FaRegStar, FaChevronLeft, FaChevronRight } from "react-icons/fa"; // ✅ Fixed import
+import { FaRegClock, FaRegStar, FaChevronLeft, FaChevronRight, FaBookOpen, FaGraduationCap, FaChartBar, FaRobot, FaMicrophone, FaQuestionCircle, } from "react-icons/fa"; // ✅ Fixed import
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/authContext"; // Import the useAuth hook
 import { Radar } from 'react-chartjs-2';
@@ -14,8 +14,7 @@ const HomePage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioFile, setAudioFile] = useState(null);
   const featuredRef = useRef(null);
-
-  const [selectedCategory, setSelectedCategory] = useState("Grammar");
+  const [highlightedSkill, setHighlightedSkill] = useState(null);
 
 
   const firstName = currentUser?.displayName?.split(" ")[0] || "User";
@@ -53,19 +52,11 @@ const HomePage = () => {
   
   // Placeholder scores for each category (Replace with actual data)
   const skillData = {
-    Grammar: [80, 40, 50, 60, 70],
-    Fluency: [55, 85, 65, 75, 60],
-    Interaction: [45, 55, 85, 65, 75],
-    Pronunciation: [70, 60, 80, 90, 85],
-    Vocabulary: [50, 75, 60, 80, 90],
-  };
-
-  const progressData = {
     labels: ["Grammar", "Fluency", "Interaction", "Pronunciation", "Vocabulary"],
     datasets: [
       {
-        label: `${selectedCategory} Progress`,
-        data: skillData[selectedCategory],
+        label: "Skill Progress",
+        data: [80, 55, 45, 70, 50],
         backgroundColor: "rgba(0, 119, 179, 0.2)",
         borderColor: "#0077B3",
         borderWidth: 2,
@@ -83,12 +74,21 @@ const HomePage = () => {
       },
     },
     plugins: {
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: function (context) {
+            return `${context.label}: ${context.raw}`;
+          },
+        },
+      },
       legend: { display: false },
     },
   };
-
+  
   return (
     <div className="flex flex-col items-center justify-start min-h-screen h-full w-full">
+      
       {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -119,20 +119,17 @@ const HomePage = () => {
             <button
               key={category}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition duration-300 ${
-                selectedCategory === category
-                  ? "bg-[#0077B3] text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                highlightedSkill === category ? "bg-[#0077B3] text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => setHighlightedSkill(highlightedSkill === category ? null : category)}
             >
               {category}
             </button>
           ))}
         </div>
 
-        {/* Radar Chart for Selected Skill */}
-        <div className="w-80 mx-auto">
-          <Radar data={progressData} options={radarOptions} />
+        <div className="w-80 mx-auto relative">
+          <Radar data={skillData} options={radarOptions} />
         </div>
       </motion.div>
 
@@ -268,6 +265,51 @@ const HomePage = () => {
           </label>
         </div>
       </motion.div>
+
+      {/* Quick Navigation Section */}
+      <motion.div 
+        className="w-full max-w-4xl p-6 mt-8 bg-gray-100 rounded-lg shadow-lg text-center"
+        whileHover={{ scale: 1.03 }}
+      >
+        <h2 className="text-2xl font-semibold text-[#0077B3] mb-4">Quick Navigation</h2>
+        <p className="text-lg text-gray-700">Easily access different features of TalkReady</p>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-6">
+          
+          <Link to="/programs" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+            <FaBookOpen className="text-3xl text-[#0077B3]" />
+            <span className="text-lg font-semibold text-gray-700">Programs</span>
+          </Link>
+
+          <Link to="/courses" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+            <FaGraduationCap className="text-3xl text-[#0077B3]" />
+            <span className="text-lg font-semibold text-gray-700">Courses</span>
+          </Link>
+
+          <Link to="/reports" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+            <FaChartBar className="text-3xl text-[#0077B3]" />
+            <span className="text-lg font-semibold text-gray-700">My Reports</span>
+          </Link>
+
+          <Link to="/chatbot" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+            <FaRobot className="text-3xl text-[#0077B3]" />
+            <span className="text-lg font-semibold text-gray-700">Chatbot</span>
+          </Link>
+
+          <Link to="/test" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+            <FaMicrophone className="text-3xl text-[#0077B3]" />
+            <span className="text-lg font-semibold text-gray-700">Level Test</span>
+          </Link>
+
+          <Link to="/help" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
+            <FaQuestionCircle className="text-3xl text-[#0077B3]" />
+            <span className="text-lg font-semibold text-gray-700">Help Center</span>
+          </Link>
+
+        </div>
+      </motion.div>
+
+
     </div>
   );
 };
