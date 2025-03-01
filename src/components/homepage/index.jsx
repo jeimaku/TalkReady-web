@@ -20,6 +20,16 @@ const HomePage = () => {
   const firstName = currentUser?.displayName?.split(" ")[0] || "User";
   const lastName = currentUser?.displayName?.split(" ")[1] || "";
 
+
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolling(window.scrollY > 50);
@@ -88,6 +98,7 @@ const HomePage = () => {
   
   return (
     <div className="flex flex-col items-center justify-start min-h-screen h-full w-full">
+
       
       {/* Header Section */}
       <motion.div

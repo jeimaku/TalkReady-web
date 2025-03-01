@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { db, auth } from "../../firebase/firebase";
-import { onSnapshot, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { onSnapshot, collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { FaMicrophone, FaRobot } from "react-icons/fa";
 import { FiSend } from "react-icons/fi";
 import { motion } from "framer-motion";
@@ -10,11 +10,10 @@ const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUDINARY_CLOUD_NAME}/upload`;
 const UPLOAD_PRESET = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
 const ASSEMBLY_AI_API_KEY = process.env.REACT_APP_ASSEMBLY_AI_API_KEY;
-const DEEPGRAM_API_KEY = process.env.REACT_APP_DEEPGRAM_API_KEY;
 
 
 const predefinedPrompts = [
-  "Practice Speaking Fluently with Real-time Feedback",
+  "Beginner - Customer Inquiry",
   "Simulate a Mock Call Center Interview with AI-driven Support",
   "Improve My Pronunciation with AI Suggestions",
   "Role-play a Live Customer Service Call",
@@ -31,6 +30,81 @@ const Chatbot = () => {
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
 
+
+  useEffect(() => {
+    const sendWelcomeMessage = async () => {
+      const user = auth.currentUser;
+      let userName = "there"; // Default value if the name is not found
+  
+      if (user) {
+        try {
+          console.log("Fetching Firestore data for UID:", user.uid); // Debugging log
+  
+          // Reference to Firestore user document
+          const userDocRef = doc(db, "users", user.uid); 
+          const userDocSnap = await getDoc(userDocRef);
+  
+          if (userDocSnap.exists()) {
+            userName = userDocSnap.data().firstName || "there"; 
+            console.log("Fetched first name from Firestore:", userName); // Debugging log
+          } else {
+            console.warn("User document does not exist in Firestore.");
+          }
+        } catch (error) {
+          console.error("Error fetching user data from Firestore:", error);
+        }
+      }
+  
+      // Get the current hour for dynamic greeting
+      const currentHour = new Date().getHours();
+      let greeting = "Hello";
+  
+      if (currentHour >= 5 && currentHour < 12) {
+        greeting = "Good morning";
+      } else if (currentHour >= 12 && currentHour < 18) {
+        greeting = "Good afternoon";
+      } else {
+        greeting = "Good evening";
+      }
+  
+      const welcomeText = `${greeting}, ${userName}! Welcome to TalkReady Bot. How can I help you practice today? 😊`;
+  
+      const welcomeMessage = {
+        text: welcomeText,
+        sender: "bot",
+        timestamp: new Date().toLocaleTimeString(),
+      };
+  
+      setMessages((prev) => [...prev, welcomeMessage]);
+  
+      // ✅ Remove emojis before voice-over
+      const cleanText = welcomeText.replace(/[\u{1F600}-\u{1F64F}]/gu, ""); 
+  
+      // ✅ Speak the message using ResponsiveVoice
+      if (window.responsiveVoice) {
+        window.responsiveVoice.speak(cleanText, "UK English Female", { 
+          pitch: 1.2, 
+          rate: 1.0,  
+          volume: 1   
+        });
+      } else {
+        console.warn("ResponsiveVoice is not loaded.");
+      }
+  
+      // ✅ Save to Firestore (optional)
+      await addDoc(collection(db, "chats"), {
+        userId: user?.uid,
+        message: welcomeText,
+        sender: "bot",
+        timestamp: serverTimestamp(),
+      });
+    };
+  
+    sendWelcomeMessage();
+  }, []); // Runs once when the chatbot page loads
+  
+  
+  
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -150,9 +224,24 @@ const sendBotMessage = async (text) => {
 
   setMessages((prev) => [...prev, botMessage]);
 
+  // ✅ Remove all emojis from chatbot's text before voice-over
+  const cleanText = text.replace(/[\p{Emoji}]/gu, "").trim(); 
+
+  // ✅ Speak the cleaned message using ResponsiveVoice
+  if (window.responsiveVoice) {
+    window.responsiveVoice.speak(cleanText, "UK English Female", { 
+      pitch: 1.2, 
+      rate: 1.0,  
+      volume: 1   
+    });
+  } else {
+    console.warn("ResponsiveVoice is not loaded.");
+  }
+
+  // ✅ Save to Firestore (optional)
   await addDoc(collection(db, "chats"), {
     userId: auth.currentUser?.uid,
-    message: text,
+    message: text,  // Store original message with emojis
     sender: "bot",
     timestamp: serverTimestamp(),
   });

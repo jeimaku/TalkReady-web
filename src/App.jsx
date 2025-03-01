@@ -105,7 +105,7 @@ function App() {
         location.pathname !== "/register" &&
         location.pathname !== "/course/intro-english-pronunciation" &&
 
-        location.pathname !== "/course/course-details/assessment/phonetic" &&
+        location.pathname !== "/courses/course-details/phonetic-chart-act/PhoneticChartActivity" &&
 
         location.pathname !== "/english-for-work/modules/CustomerServSimul" &&
 
