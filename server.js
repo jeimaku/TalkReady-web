@@ -98,3 +98,49 @@
 // });
 
 
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+app.post('/api/text-to-speech', async (req, res) => {
+    const { text, voiceID } = req.body;
+
+    if (!text || !voiceID) {
+        return res.status(400).json({ error: "Missing text or voice ID" });
+    }
+
+    try {
+        const response = await axios.post(`https://api.elevenlabs.io/v1/text-to-speech/${voiceID}`, {
+            text: text,
+            model_id: "eleven_multilingual_v1",
+            voice_settings: {
+                stability: 0.75,
+                similarity_boost: 0.8,
+            },
+        }, {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${process.env.ELEVENLABS_API_KEY}`,  // Server-side API key
+            },
+            responseType: "arraybuffer", // Important for handling audio data
+        });
+
+        res.set("Content-Type", "audio/mpeg");
+        res.send(response.data);
+
+    } catch (error) {
+        console.error("Error fetching from ElevenLabs:", error.response?.data || error.message);
+        res.status(500).json({ error: "Failed to generate speech." });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

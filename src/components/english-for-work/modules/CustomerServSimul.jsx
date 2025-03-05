@@ -3,15 +3,17 @@ import axios from 'axios';
 import { FaMicrophone, FaStop } from 'react-icons/fa'; // FontAwesome Icons
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { db, auth } from '../../../firebase/firebase';
+import { collection, addDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 // Main Customer Service Simulation Component
 const CustomerServiceSimul = () => {
   const [isCallStarted, setIsCallStarted] = useState(false);
   const [userResponse, setUserResponse] = useState("");
-  const [customerSpeech, setCustomerSpeech] = useState("");
+  const [setCustomerSpeech] = useState("");
   const [responseFeedback, setResponseFeedback] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [audioURL, setAudioURL] = useState(""); // Store the audio URL from Cloudinary
+  const [setAudioURL] = useState(""); // Store the audio URL from Cloudinary
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [performanceScore, setPerformanceScore] = useState(null);
   const [showBackModal, setShowBackModal] = useState(false); // Modal state
@@ -20,10 +22,25 @@ const CustomerServiceSimul = () => {
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
+  const [callDuration, setCallDuration] = useState(180); // Call duration in seconds (3 minutes)
+  const [isCallActive, setIsCallActive] = useState(false); // Tracks if call is active
+
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
 
+  const [selectedAccent, setSelectedAccent] = useState("en-US");
+  const [selectedInquiry, setSelectedInquiry] = useState("General Inquiry");
+
+  const mediaRecorderRef = useRef(null);  // Store MediaRecorder instance
+  const audioChunks = useRef([]);  // Store recorded audio chunks
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  
+  
 
   const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
+  const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUDINARY_CLOUD_NAME}/upload`;
+  const ASSEMBLY_AI_API_KEY = process.env.REACT_APP_ASSEMBLY_AI_API_KEY;
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,13 +50,31 @@ const CustomerServiceSimul = () => {
   const [recognition, setRecognition] = useState(null);
 
   useEffect(() => {
-    if (conversation.length > 0) {
-        const lastMessage = conversation[conversation.length - 1];
-        if (lastMessage.sender === "customer") {
-            speakText(lastMessage.text);
-        }
+    if (conversation.length === 0) return;
+
+    const lastMessage = conversation[conversation.length - 1];
+
+    if (lastMessage.sender === "customer" && !isSpeaking) {
+        speakText(lastMessage.text);
     }
-}, [conversation]);
+}, [conversation]);  // Only run when conversation updates
+
+
+
+// Timer Effect: Counts down every second
+useEffect(() => {
+  if (isCallStarted && callDuration > 0) {
+      const timer = setInterval(() => {
+          setCallDuration(prevTime => prevTime - 1);
+      }, 1000);
+
+      return () => clearInterval(timer); // Cleanup on unmount
+  }
+
+  if (callDuration === 0) {
+      endCall(); // Automatically end call when timer reaches zero
+  }
+}, [callDuration, isCallStarted]);
 
 
 useEffect(() => {
@@ -79,10 +114,6 @@ useEffect(() => {
     
         if (isRecording) {
             console.log("Restarting speech recognition...");
-            setTimeout(() => {
-                if (!isRecording) return; // Ensure it only restarts when needed
-                recognitionInstance.start();
-            }, 500);
         }
     };
     
@@ -109,6 +140,7 @@ useEffect(() => {
                 { sender: "user", text: userResponse }
             ];
 
+            saveMessageToFirestore("user", userResponse); // Save user message
             setIsRecording(false); // Immediately remove "Recording..." when response is processed
             setTimeout(() => processAudio(userResponse), 500); 
 
@@ -119,105 +151,124 @@ useEffect(() => {
     }
 }, [userResponse]);
 
-  
-
   // Generate customer speech using OpenAI API
   const generateCustomerSpeech = async () => {
     try {
-      const prompt = "Generate a random customer inquiry for a call center. Example: 'Hello, I recently made a purchase on your website and I’m wondering if you can provide me with an update on the delivery status of my order.'";
+        let inquiryPrompt = "";
 
-      const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-        model: 'gpt-3.5-turbo',  // Use the desired model
-        messages: [
-          { role: 'system', content: 'You are a helpful customer service representative.' },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 100,
-        temperature: 0.7,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Get the generated response
-      let generatedSpeech = response.data.choices[0].message.content.trim();
-
-      // Remove the quotation marks from the response
-      generatedSpeech = generatedSpeech.replace(/"/g, '').trim();
-
-      setConversation([{ sender: "customer", text: generatedSpeech }]); 
-      speakText(generatedSpeech);
-       // Set the AI-generated inquiry as customer speech
-
-      // Use Web Speech API to speak the customer speech
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(generatedSpeech);
-        const voices = speechSynthesis.getVoices();
-        const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
-
-        if (femaleVoice) {
-          utterance.voice = femaleVoice; // Select the female voice
-        } else {
-          utterance.voice = voices[0]; // If no female voice is found, use the first available voice
+        switch (selectedInquiry) {
+            case "Billing Issue":
+                inquiryPrompt = "You are a customer calling about a billing issue. Your last payment did not reflect on your account, and you are worried about possible service disconnection.";
+                break;
+            case "Technical Support":
+                inquiryPrompt = "You are a customer experiencing technical issues. Your internet has been slow for the past three days, and rebooting the router did not help.";
+                break;
+            case "Product Inquiry":
+                inquiryPrompt = "You are a customer calling to ask about a specific product. You want to know if the new smartphone model supports wireless charging and has a high refresh rate display.";
+                break;
+            case "General Inquiry":
+            default:
+                inquiryPrompt = "You are a customer calling a company with a general inquiry. You would like to ask about their refund policy for recently purchased items.";
+                break;
         }
 
-        speechSynthesis.speak(utterance);
-      }
-    } catch (error) {
-      console.error('Error generating customer speech:', error);
-      setCustomerSpeech('Sorry, we encountered an error generating the inquiry.');
-    }
-  };
+        // ** Prevent AI from using placeholders **
+        const prompt = `You are a customer calling a company for support. Your response should be natural, professional, and should **not include placeholders** like "[Your Name]" or "[Company Name]".
+        Instead, use a **random realistic first name** and refer to "your company" instead of a placeholder. Keep the response concise.`;    
 
-  const generateCustomerFollowUp = async (userResponse) => {
-    try {
-        console.log("Generating follow-up based on user response:", userResponse);
-        setIsGeneratingResponse(true); // Show AI is generating response
-        
-        const prompt = `The customer service agent responded: "${userResponse}". Provide a professional, polite follow-up as a customer in a call.`;        
-
-        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-            model: 'gpt-3.5-turbo',
-            messages: [
-                { role: 'system', content: 'You are a customer continuing a conversation in a call center scenario.' },
-                { role: 'user', content: prompt },
-            ],
-            max_tokens: 100,
-            temperature: 0.7,
-        }, {
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                'Content-Type': 'application/json',
+        const response = await axios.post(
+            "https://api.openai.com/v1/chat/completions",
+            {
+                model: "gpt-3.5-turbo",
+                messages: [
+                    { role: "system", content: "You are a realistic and professional customer engaged in a customer service conversation. Make your speech natural and clear." },
+                    { role: "user", content: prompt },
+                    { role: "user", content: inquiryPrompt },
+                ],
+                max_tokens: 150,
+                temperature: 0.7,
             },
-        });
+            {
+                headers: {
+                    Authorization: `Bearer ${OPENAI_API_KEY}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
 
-        let generatedFollowUp = response.data.choices[0].message.content.trim();
-        console.log("Generated Follow-Up:", generatedFollowUp);
+        let generatedSpeech = response.data.choices[0].message.content.trim();
 
-        if (generatedFollowUp) {
-            setTimeout(() => {
-                setConversation(prev => [
-                    ...prev,
-                    { sender: "customer", text: generatedFollowUp }
-                ]);
-                
-                speakText(generatedFollowUp);
-                setIsWaitingForResponse(true); 
-                setIsGeneratingResponse(false); // Hide indicator after response
-            }, 1000);
-        } else {
-            console.warn("Generated follow-up is empty");
-            setIsGeneratingResponse(false); // Hide indicator if error
-        }
+        // ** Ensure any lingering placeholders are removed **
+        generatedSpeech = generatedSpeech.replace(/\[Your Name\]/g, "Alex") // Replace with a generic name
+                                         .replace(/\[Company Name\]/g, "your company") // Generic placeholder fix
+                                         .trim();
+
+        console.log("📞 AI-generated customer speech:", generatedSpeech);
+
+        // ✅ Store AI-generated response in conversation
+        saveMessageToFirestore("customer", generatedSpeech);
+        speakText(generatedSpeech);
+
     } catch (error) {
-        console.error('Error generating customer follow-up:', error);
-        setCustomerSpeech('Sorry, we encountered an error generating the follow-up response.');
-        setIsGeneratingResponse(false); // Hide indicator on error
+        console.error("❌ Error generating customer speech:", error);
+        setConversation([{ sender: "customer", text: "Sorry, we encountered an error generating the inquiry." }]);
     }
 };
 
+  
+  
+const generateCustomerFollowUp = async (userResponse) => {
+  try {
+      console.log("Generating follow-up based on user response:", userResponse);
+      setIsGeneratingResponse(true); // Show AI is generating response
+
+      const prompt = `You are a customer speaking to a service agent regarding a "${selectedInquiry}". 
+      The agent just responded: "${userResponse}". 
+      Continue the conversation naturally and professionally. Avoid repeating the same statements. 
+      Do not use "Customer:" as a prefix or quotation marks. Keep it concise and realistic.`;
+
+      const response = await axios.post(
+          "https://api.openai.com/v1/chat/completions",
+          {
+              model: "gpt-3.5-turbo",
+              messages: [
+                  { role: "system", content: "You are a customer engaged in a conversation with a service agent. Your responses should be natural, professional, and fluid in a call center scenario." },
+                  { role: "user", content: prompt },
+              ],
+              max_tokens: 150,
+              temperature: 0.7,
+          },
+          {
+              headers: {
+                  Authorization: `Bearer ${OPENAI_API_KEY}`,
+                  "Content-Type": "application/json",
+              },
+          }
+      );
+
+      let generatedFollowUp = response.data.choices[0].message.content.trim();
+
+      // ✅ Clean unnecessary prefixes and quotes
+      generatedFollowUp = generatedFollowUp.replace(/^Customer:/i, "").replace(/"/g, "").trim();
+
+      console.log("🔄 AI Follow-Up:", generatedFollowUp);
+
+      if (generatedFollowUp) {
+        setTimeout(() => {
+            saveMessageToFirestore("customer", generatedFollowUp);
+            speakText(generatedFollowUp);
+            setIsWaitingForResponse(true);
+            setIsGeneratingResponse(false);
+                }, 1000);
+            } else {
+                console.warn("⚠️ Empty follow-up generated.");
+                setIsGeneratingResponse(false);
+            }
+          } catch (error) {
+              console.error('Error generating customer follow-up:', error);
+              setIsGeneratingResponse(false);
+          }
+      };
 
   // Process Audio After User Response
   const processAudio = async () => {
@@ -240,30 +291,239 @@ useEffect(() => {
   };
 
   const stopRecording = () => {
-    if (recognition) {
-        console.log("Manually stopping recording...");
-        setIsRecording(false);  
-        recognition.stop();
-        recognition.abort();  // Force stop recognition
+    if (!mediaRecorderRef.current) {
+        console.warn("⚠️ No media recorder found!");
+        return;
     }
+
+    console.log("🛑 Stopping recording...");
+    setIsRecording(false);
+
+    // ✅ Immediately remove "Transcribing audio, please wait..." from the conversation
+    setConversation((prev) => prev.filter(msg => msg.text !== "Transcribing audio, please wait..."));
+
+    mediaRecorderRef.current.onstop = async () => {
+        console.log("✅ Recorder stopped, processing audio...");
+
+        if (audioChunks.current.length === 0) {
+            console.error("❌ No audio data recorded.");
+            return;
+        }
+
+        const blob = new Blob(audioChunks.current, { type: "audio/wav" });
+
+        if (blob.size === 0) {
+            console.error("❌ Empty audio blob detected, skipping upload.");
+            return;
+        }
+
+        console.log("🔍 Audio Blob Size:", blob.size, "bytes");
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+
+        // ✅ Upload recorded audio
+        await uploadAudioToCloudinary(blob);
+    };
+
+    mediaRecorderRef.current.stop();
 };
+
+
+
 
 
   // Speak Text using Web Speech API
-  const speakText = (text) => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      speechSynthesis.speak(utterance);
-    }
-  };
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Start Call
-  const startCall = () => {
-    resetSimulation();  // 🔥 Ensure previous data is cleared
-    setIsCallStarted(true);
-    generateCustomerSpeech();
-    setIsWaitingForResponse(true);
+  // Track last spoken message
+  const [lastSpokenText, setLastSpokenText] = useState("");
+
+const speakText = (text) => {
+    if (!('speechSynthesis' in window)) {
+        console.error("Text-to-Speech not supported in this browser.");
+        return;
+    }
+
+    // ✅ Prevent speaking the same message again
+    if (text === lastSpokenText) {
+        console.warn("⚠️ Skipping duplicate speech: Already spoken");
+        return;
+    }
+
+    console.log("🗣️ Speaking new message:", text);
+    setLastSpokenText(text); // ✅ Update last spoken message
+
+    window.speechSynthesis.cancel(); // Stop any ongoing speech
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    utterance.onend = () => {
+        console.log("Speech synthesis completed.");
+    };
+
+    utterance.onerror = (err) => {
+        console.error("Speech synthesis error:", err.error, err.message);
+    };
+
+    speechSynthesis.speak(utterance);
 };
+
+  
+  
+  // Start Call
+  const [sessionId, setSessionId] = useState(null); // Store session ID
+
+  const startCall = async () => {
+      resetSimulation();
+      setIsCallStarted(true);
+      setIsCallActive(true);
+      setCallDuration(180);  
+  
+      try {
+          // Create a new conversation session in Firestore
+          const sessionRef = await addDoc(collection(db, "customer_service_simulations"), {
+              inquiryType: selectedInquiry,
+              startTime: serverTimestamp(),
+              endTime: null
+          });
+  
+          setSessionId(sessionRef.id); // Store session ID in state
+          console.log("✅ New session created in Firestore:", sessionRef.id);
+  
+          generateCustomerSpeech();
+          setIsWaitingForResponse(true);
+      } catch (error) {
+          console.error("❌ Error creating session in Firestore:", error);
+      }
+  };
+  
+
+  const endCall = async () => {
+    setIsCallStarted(false);
+    setIsCallActive(false);
+    alert("📞 Call has ended.");
+
+    let sessionRef;
+    let currentSessionId = sessionId;
+
+    try {
+        if (!sessionId) {
+            // ✅ Create a new Firestore session document
+            sessionRef = await addDoc(collection(db, "customer_service_simulations"), {
+                inquiryType: selectedInquiry,
+                startTime: serverTimestamp(),
+                endTime: serverTimestamp(),
+                conversation: conversation
+            });
+
+            currentSessionId = sessionRef.id;
+            setSessionId(currentSessionId);
+            console.log("✅ New session stored in Firestore:", currentSessionId);
+        } else {
+            // ✅ Update existing Firestore session
+            await setDoc(doc(db, "customer_service_simulations", sessionId), {
+                endTime: serverTimestamp(),
+                conversation: conversation
+            }, { merge: true });
+
+            console.log("✅ Existing conversation updated in Firestore.");
+        }
+
+        // ✅ Extract user responses for vocabulary analysis
+        const userResponses = conversation
+            .filter(msg => msg.sender === "user")
+            .map(msg => msg.text)
+            .join(" ");
+
+        if (userResponses.trim()) {
+            console.log("📖 Processing transcription-based vocabulary analysis...");
+
+            const response = await axios.post(
+                "https://api.openai.com/v1/chat/completions",
+                {
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        { role: "system", content: "Analyze the vocabulary level of this response based on word variety, complexity, and appropriateness for a professional call center setting. Provide constructive feedback." },
+                        { role: "user", content: userResponses },
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.5,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${OPENAI_API_KEY}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            const feedback = response.data.choices[0].message.content.trim();
+            console.log("✅ Vocabulary Analysis Result:", feedback);
+
+            // ✅ Store analysis in Firestore in the correct collection
+            await addDoc(collection(db, "customer_serv_vocabulary_analysis"), {
+                sessionId: currentSessionId,
+                userId: auth?.currentUser?.uid || "anonymous",
+                analysis: feedback,
+                timestamp: serverTimestamp(),
+            });
+
+            console.log("✅ Vocabulary analysis saved.");
+        } else {
+            console.log("⚠️ No user responses found, skipping vocabulary analysis.");
+        }
+
+        // ✅ Ensure that navigation happens AFTER Firestore write is complete
+        setTimeout(() => {
+            navigate(`/english-for-work/analysis/FeedbackAnalysis/${currentSessionId}`);
+        }, 1000); // Short delay to allow Firestore write
+
+    } catch (error) {
+        console.error("❌ Error in endCall process:", error);
+    }
+
+    resetSimulation(); // Clear conversation state after storing
+};
+
+
+const analyzeVocabulary = async (transcriptionText) => {
+  try {
+      const response = await axios.post(
+          "https://api.openai.com/v1/chat/completions",
+          {
+              model: "gpt-3.5-turbo",
+              messages: [
+                  { role: "system", content: "Analyze the vocabulary level of this response based on word variety, complexity, and appropriateness for a professional call center setting." },
+                  { role: "user", content: transcriptionText },
+              ],
+              max_tokens: 200,
+              temperature: 0.5,
+          },
+          {
+              headers: {
+                  Authorization: `Bearer ${OPENAI_API_KEY}`,
+                  "Content-Type": "application/json",
+              },
+          }
+      );
+
+      const feedback = response.data.choices[0].message.content.trim();
+      console.log("✅ Vocabulary Analysis:", feedback);
+
+      // Save feedback to Firestore
+      await addDoc(collection(db, "customer_serv_vocabulary_analysis"), {
+          sessionId: sessionId, // Link to conversation session
+          userId: auth?.currentUser?.uid || "anonymous",
+          analysis: feedback,
+          timestamp: serverTimestamp(),
+      });
+      console.log("✅ Vocabulary analysis saved in Firestore.");
+
+
+  } catch (error) {
+      console.error("❌ Error in vocabulary analysis:", error);
+  }
+};
+
 
 
 
@@ -284,13 +544,17 @@ useEffect(() => {
 
   // Function to handle back navigation (Show confirmation modal)
   const handleBack = () => {
+    console.log("Back button clicked, stopping speech synthesis...");
+    window.speechSynthesis.cancel(); // Stops any ongoing speech immediately
+
     if (isCallStarted) {
-      setShowBackModal(true); // Show the modal instead of navigating directly
+        setShowBackModal(true); // Show confirmation modal
     } else {
-      resetSimulation();  // 🔥 Reset before navigating
-      navigate("/english-for-work");
+        resetSimulation();  // Reset state before navigating
+        navigate("/english-for-work");
     }
-  };
+};
+
 
   const resetSimulation = () => {
     setConversation([]);  // 🔥 Clears previous inquiries/messages
@@ -304,41 +568,180 @@ useEffect(() => {
 
   // Function to confirm going back
   const confirmBack = () => {
-    setIsCallStarted(false); 
+    console.log("Confirming exit, stopping speech synthesis...");
+    window.speechSynthesis.cancel(); // Ensure speech stops when exiting
+    setIsCallStarted(false);
     setShowBackModal(false);
-  };
+    navigate("/english-for-work/modules/CustomerServSimul"); // Redirect user
+};
+
 
   // Function to cancel going back
   const cancelBack = () => {
     setShowBackModal(false);
   };
   
-  const startRecording = () => {
-    if (!recognition) {
-        console.warn("Speech recognition instance not initialized.");
-        return;
-    }
-
-    if (isRecording) {
-        console.log("Speech recognition is already running.");
-        return; // Prevent multiple starts
-    }
-
+  const startRecording = async () => {
     try {
-        console.log("Stopping previous recognition before starting a new one...");
-        recognition.stop(); // Stop previous recognition
-        recognition.abort(); // Ensure it fully stops
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!stream) {
+            console.error("❌ No audio stream available!");
+            return;
+        }
 
-        setTimeout(() => { // Add a small delay before restarting
-            console.log("Starting speech recognition...");
-            recognition.start();
+        console.log("✅ Audio stream obtained.");
+        
+        mediaRecorderRef.current = new MediaRecorder(stream);  // Use ref instead of state
+        audioChunks.current = [];  // Reset audio chunks before starting
+
+        mediaRecorderRef.current.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.current.push(event.data);
+                console.log("🎙️ Audio chunk received, size:", event.data.size);
+            }
+        };
+
+        mediaRecorderRef.current.onstart = () => {
+            console.log("🎤 Recording started...");
             setIsRecording(true);
-        }, 500);  // Small delay to prevent immediate conflict
+        };
+
+        mediaRecorderRef.current.onerror = (error) => console.error("❌ MediaRecorder error:", error);
+
+        mediaRecorderRef.current.start();
     } catch (error) {
-        console.error("Error starting speech recognition:", error);
+        console.error("❌ Error starting audio recording:", error);
     }
 };
 
+
+
+const uploadAudioToCloudinary = async (blob) => {
+  if (!blob || blob.size === 0) {
+      console.warn("❌ No valid audio recorded. Skipping upload.");
+      return;
+  }
+
+  console.log("🔍 Uploading Audio Blob Size:", blob.size, "bytes");
+
+  const formData = new FormData();
+  formData.append("file", blob);
+  formData.append("upload_preset", process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET);
+  formData.append("resource_type", "video");  // ✅ Cloudinary treats audio as video
+
+  try {
+      // ✅ Ensure "Transcribing audio" is not displayed multiple times
+      setConversation((prev) => prev.filter(msg => msg.text !== "Transcribing audio, please wait..."));
+
+      // ✅ Show temporary local audio playback before upload completes
+      const tempAudioUrl = URL.createObjectURL(blob);
+      setAudioUrl(tempAudioUrl);
+
+      const response = await axios.post(CLOUDINARY_UPLOAD_URL, formData);
+      const audioUrl = response.data.secure_url;
+      console.log("✅ Audio uploaded to Cloudinary:", audioUrl);
+      setAudioUrl(audioUrl); // Update state with uploaded URL
+
+      // ✅ Save audio URL to Firestore
+      const userId = auth?.currentUser?.uid || "anonymous";
+      await addDoc(collection(db, "customer_service_simulations"), {
+          userId: userId,
+          audioUrl: audioUrl,
+          sender: "user",
+          timestamp: serverTimestamp(),
+      });
+
+      console.log("✅ Audio URL stored in Firestore.");
+
+      // ✅ Remove "Transcribing audio, please wait..." before transcription
+      setConversation((prev) => prev.filter(msg => msg.text !== "Transcribing audio, please wait..."));
+
+      // ✅ Start transcription process
+      await transcribeAudio(audioUrl);
+
+  } catch (error) {
+      console.error("❌ Error uploading audio:", error);
+  }
+};
+
+
+const transcribeAudio = async (audioUrl) => {
+  if (!audioUrl) {
+      console.warn("❌ No valid audio URL for transcription.");
+      return;
+  }
+
+  try {
+      const response = await axios.post(
+          "https://api.assemblyai.com/v2/transcript",
+          {
+              audio_url: audioUrl,
+              speaker_labels: false,
+              dual_channel: false,
+              format_text: true
+          },
+          { headers: { Authorization: ASSEMBLY_AI_API_KEY } }
+      );
+
+      const transcriptionId = response.data.id;
+      console.log("📝 Transcription started. ID:", transcriptionId);
+
+      checkTranscriptionStatus(transcriptionId); // ✅ Start polling for completion
+
+  } catch (error) {
+      console.error("❌ Error sending audio for transcription:", error);
+      setConversation((prev) => prev.filter(msg => msg.text !== "Transcribing audio, please wait..."));
+  }
+};
+
+const checkTranscriptionStatus = async (transcriptionId, audioUrl) => {
+  try {
+      const result = await axios.get(
+          `https://api.assemblyai.com/v2/transcript/${transcriptionId}`,
+          { headers: { Authorization: ASSEMBLY_AI_API_KEY } }
+      );
+
+      if (result.data.status === "completed") {
+          console.log("✅ Transcription completed:", result.data.text);
+
+          if (!result.data.text.trim()) {
+              console.warn("⚠️ Empty transcription received. Skipping AI response.");
+              return;
+          }
+
+          // ✅ Store transcribed text in conversation
+          saveMessageToFirestore("user", result.data.text, audioUrl);
+
+          // ✅ Generate AI follow-up after transcription
+          generateCustomerFollowUp(result.data.text);
+
+      } else if (result.data.status === "failed") {
+          console.error("❌ Transcription failed:", result.data.error);
+      } else {
+          setTimeout(() => checkTranscriptionStatus(transcriptionId, audioUrl), 2000); // Poll every 2 seconds
+      }
+  } catch (error) {
+      console.error("❌ Error checking transcription status:", error);
+  }
+};
+
+
+
+
+const saveMessageToFirestore = async (sender, text, audioUrl = null) => {
+  // ✅ Update conversation state with a new message
+  setConversation(prev => [
+      ...prev,
+      {
+          sender: sender,
+          text: text || "(No text provided)",
+          audioUrl: audioUrl || null, // Optional Cloudinary audio URL
+          timestamp: new Date().toISOString() // Store readable timestamps
+      }
+  ]);
+
+  console.log(`✅ Message from ${sender} added to conversation.`);
+};
 
 
   return (
@@ -375,20 +778,64 @@ useEffect(() => {
         {/* User Response Column */}
         <div className="md:w-2/3 flex flex-col space-y-6">
           <h1 className="text-3xl font-semibold text-center mb-6">Customer Service Simulation</h1>
+
+           {/* Display Timer & End Call Button */}
+      {isCallStarted && (
+        <div className="flex justify-between w-full mt-4 px-6">
+          <p className="text-lg text-gray-600">
+            Time Remaining: <strong>{Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}</strong>
+          </p>
+          <button
+            onClick={endCall}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-300"
+          >
+            End Call
+          </button>
+        </div>
+      )}
   
-          {/* Instructions Section */}
-          {!isCallStarted && (
-            <div className="mb-6 bg-blue-100 p-6 rounded-lg">
-              <p className="text-xl text-gray-700 font-semibold">Instructions:</p>
-              <p className="text-base text-gray-600">
-                1. Greet the customer politely and introduce yourself.<br />
-                2. Listen to the customer's concern and address it with empathy.<br />
-                3. Provide a professional response to the customer’s query.<br />
-                4. After providing your response, you’ll receive feedback on your language and professionalism.<br />
-                5. Retry and improve with each interaction.
-              </p>
+          {/* Accent & Inquiry Selection Before Start */}
+        {!isCallStarted && (
+          <div className="mb-6 bg-blue-100 p-6 rounded-lg">
+            <p className="text-xl text-gray-700 font-semibold">Instructions:</p>
+            <p className="text-base text-gray-600">
+              1. Select an **accent** and **customer inquiry type**.<br />
+              2. Greet the customer politely and introduce yourself.<br />
+              3. Listen to the customer's concern and address it with empathy.<br />
+              4. Provide a professional response to the customer’s query.<br />
+              5. Receive feedback on your response and improve your interactions.<br />
+            </p>
+
+            {/* Accent Selection Dropdown */}
+            <div className="mt-4">
+              <label className="text-lg font-semibold">Select AI Accent:</label>
+              <select
+                className="p-2 border rounded-lg w-full"
+                value={selectedAccent}
+                onChange={(e) => setSelectedAccent(e.target.value)}
+              >
+                <option value="en-US">American</option>
+                <option value="en-GB">British</option>
+                <option value="en-AU">Australian</option>
+              </select>
             </div>
-          )}
+
+            {/* Inquiry Selection Dropdown */}
+            <div className="mt-4">
+              <label className="text-lg font-semibold">Select Customer Inquiry Type:</label>
+              <select
+                className="p-2 border rounded-lg w-full"
+                value={selectedInquiry}
+                onChange={(e) => setSelectedInquiry(e.target.value)}
+              >
+                <option value="Billing Issue">Billing Issue</option>
+                <option value="Technical Support">Technical Support</option>
+                <option value="Product Inquiry">Product Inquiry</option>
+                <option value="General Inquiry">General Inquiry</option>
+              </select>
+            </div>
+          </div>
+        )}
   
           {!isCallStarted ? (
             <div className="mb-6 text-center">

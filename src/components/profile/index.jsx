@@ -12,6 +12,13 @@ const Profile = () => {
   const [lastName, setLastName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [onboardingData, setOnboardingData] = useState({
+    currentGoal: '',
+    dailyPracticeGoal: '',
+    desiredAccent: '',
+    englishLevel: '',
+    learningPreference: ''
+  });
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -25,6 +32,16 @@ const Profile = () => {
           setLastName(userData.lastName || currentUser.displayName?.split(" ")[1] || '');
           setEmail(userData.email || currentUser.email || '');
           setMobileNumber(userData.mobileNumber || '');
+
+          // Fetch onboarding data
+          const onboardingData = userData.onboarding || {};
+          setOnboardingData({
+            currentGoal: onboardingData.currentGoal || '',
+            dailyPracticeGoal: onboardingData.dailyPracticeGoal || '',
+            desiredAccent: onboardingData.desiredAccent || '',
+            englishLevel: onboardingData.englishLevel || '',
+            learningPreference: onboardingData.learningPreference || ''
+          });
         }
       }
     };
@@ -54,7 +71,7 @@ const Profile = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <motion.img
-              src="https://uxwing.com/wp-content/themes/uxwing/download/peoples-avatars/man-user-circle-icon.png"
+              src="https://img.freepik.com/free-psd/3d-render-businessman-wearing-glasses-suit-orange-tie-business-person-avatar-profile-picture_632498-31497.jpg"
               alt="Profile"
               className="w-20 h-20 rounded-full object-cover"
               whileHover={{ scale: 1.1 }}
@@ -77,7 +94,7 @@ const Profile = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[
+          {[ 
             { label: 'First Name', value: firstName, setter: setFirstName },
             { label: 'Last Name', value: lastName, setter: setLastName },
             { label: 'Mobile Number', value: mobileNumber, setter: setMobileNumber },
@@ -94,6 +111,19 @@ const Profile = () => {
               />
             </motion.div>
           ))}
+        </div>
+        
+        {/* Onboarding Data Display */}
+        <div className="mt-6 bg-gray-50 p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-semibold text-[#0077B3] mb-4">Onboarding Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Object.entries(onboardingData).map(([key, value], index) => (
+              <motion.div key={index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+                <label className="text-gray-700 font-semibold">{key.replace(/([A-Z])/g, ' $1').toUpperCase()}</label>
+                <p className="mt-2 text-gray-700">{value || 'Not set'}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </motion.div>
 

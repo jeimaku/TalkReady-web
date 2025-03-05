@@ -31,7 +31,7 @@ const DailyPracticeGoal = () => {
         const userRef = doc(db, "users", currentUser.uid);
         await updateDoc(userRef, { "onboarding.dailyPracticeGoal": selectedGoal });
         console.log("✅ Daily practice goal stored successfully in Firestore:", selectedGoal);
-        navigate("/personalizing-plan");
+        navigate("/desired-accent");
       } catch (error) {
         console.error("❌ Error storing daily practice goal:", error);
       }

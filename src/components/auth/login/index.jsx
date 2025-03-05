@@ -9,9 +9,9 @@ import logo from "../../../assets/logoTR.png";
 
 // Image Array for Slideshow
 const images = [
-    require("../../../assets/google.png"),
-    require("../../../assets/large image.png"),
-    require("../../../assets/Welcome.png")
+    require("../../../assets/4.png"),
+    require("../../../assets/5.png"),
+    require("../../../assets/6.png")
 ];
 
 const Login = () => {
@@ -89,34 +89,54 @@ const Login = () => {
             transition={{ duration: 1 }}
         >
             <div className="bg-white shadow-lg rounded-3xl flex w-full max-w-7xl overflow-hidden">
-                {/* Image Section with Automatic Slideshow */}
-                <div className="w-1/2 hidden lg:flex bg-blue-100 items-center justify-center relative">
+                {/* Left Section (Image Background with Text Box) */}
+                <div className="w-1/2 hidden lg:flex relative">
+                    {/* Background Image */}
                     <motion.img
-                        key={currentImage} // Key change triggers animation
+                        key={currentImage}
                         src={images[currentImage]}
                         alt="Slideshow Image"
-                        className="object-cover w-full h-full transition-opacity duration-1000 ease-in-out"
+                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 1 }}
                     />
+
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent"></div>
+
+                    {/* Text Box with Background */}
+                    <motion.div
+                        className="absolute bottom-10 left-6 right-6 bg-black bg-opacity-60 text-white p-4 rounded-lg text-center mx-auto max-w-md"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                    >
+                        <h2 className="text-2xl font-bold">Master English, Master Your Career</h2>
+                        <p className="text-sm mt-2 leading-relaxed">
+                            TalkReady is an AI-powered English proficiency platform designed for aspiring call center professionals.
+                            Enhance your fluency, pronunciation, and communication skills with real-time feedback!
+                        </p>
+                    </motion.div>
                 </div>
 
+    
                 {/* Form Section */}
                 <div className="w-full lg:w-2/5 p-8 flex flex-col justify-center max-w-md mx-auto">
                     {/* Logo & Welcome Text */}
                     <div className="flex flex-col items-center text-center mb-6">
                         <img src={logo} alt="Logo" className="w-12 h-12 mb-5" />
-                        <motion.h2 
+                        <motion.h2
                             className="text-3xl font-bold text-[#0077B3]"
                             initial={{ y: -20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.8 }}
-                            >Welcome to TalkReady 👋
+                        >
+                            Welcome to TalkReady 👋
                         </motion.h2>
                         <p className="text-gray-600 text-sm mt-1">Kindly enter your details below to log in</p>
                     </div>
-
+    
                     {!forgotPassword ? (
                         <form onSubmit={onSubmit} className="space-y-5">
                             {/* Email Input */}
@@ -131,7 +151,7 @@ const Login = () => {
                                     className="w-full mt-2 px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg focus:border-blue-500 focus:ring focus:ring-blue-300 shadow-sm"
                                 />
                             </div>
-
+    
                             {/* Password Input */}
                             <div>
                                 <label className="text-sm text-gray-600 font-bold">Password</label>
@@ -144,10 +164,10 @@ const Login = () => {
                                     className="w-full mt-2 px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg focus:border-blue-500 focus:ring focus:ring-blue-300 shadow-sm"
                                 />
                             </div>
-
+    
                             {/* Error Message */}
                             {errorMessage && <span className="text-red-500 font-bold">{errorMessage}</span>}
-
+    
                             {/* Login Button */}
                             <button
                                 type="submit"
@@ -160,7 +180,7 @@ const Login = () => {
                                     "Sign In"
                                 )}
                             </button>
-
+    
                             {/* Forgot Password */}
                             <p
                                 onClick={() => setForgotPassword(true)}
@@ -168,14 +188,14 @@ const Login = () => {
                             >
                                 Forgot Password?
                             </p>
-
+    
                             {/* Divider */}
                             <div className="flex items-center space-x-2 text-gray-500">
                                 <div className="flex-grow border-t border-gray-300"></div>
                                 <span className="text-sm">or</span>
                                 <div className="flex-grow border-t border-gray-300"></div>
                             </div>
-
+    
                             {/* Google Login Button */}
                             <button
                                 disabled={isSigningIn}
@@ -189,7 +209,7 @@ const Login = () => {
                                     "Continue with Google"
                                 )}
                             </button>
-
+    
                             {/* Register Link */}
                             <p className="text-center text-sm text-gray-600 mt-4">
                                 Don't have an account? <Link to={'/register'} className="hover:underline font-bold text-blue-600">Sign up</Link>
@@ -229,6 +249,7 @@ const Login = () => {
             </div>
         </motion.div>
     );
+    
 };
 
 export default Login;

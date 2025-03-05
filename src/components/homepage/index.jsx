@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaRegClock, FaRegStar, FaChevronLeft, FaChevronRight, FaBookOpen, FaGraduationCap, FaChartBar, FaRobot, FaMicrophone, FaQuestionCircle, } from "react-icons/fa"; // ✅ Fixed import
+import { FaRegClock, FaRegStar, FaChevronLeft, FaChevronRight, FaGraduationCap, 
+          FaChartBar, FaRobot, FaMicrophone, FaQuestionCircle, FaVolumeUp, FaUserTie } from "react-icons/fa"; // ✅ Fixed import
 import { motion } from "framer-motion";
 import { useAuth } from "../../contexts/authContext"; // Import the useAuth hook
 import { Radar } from 'react-chartjs-2';
@@ -111,7 +112,7 @@ const HomePage = () => {
       >
         <h1 className="text-4xl font-bold text-[#0077B3]">Welcome to TalkReady</h1>
         <p className="text-lg text-gray-700 mt-2">
-          Your AI-powered platform for improving English for BPO roles
+          Your AI-powered platform for improving English for Call Center roles
         </p>
       </motion.div>
 
@@ -163,19 +164,24 @@ const HomePage = () => {
 
       {/* Speaking Level Test Section */}
       <motion.div
-        className="border p-6 rounded-lg bg-[#0077B3] text-white shadow-lg mb-6 w-full max-w-3xl text-center"
-        whileHover={{ scale: 1.05 }}
+        className="border p-6 rounded-lg bg-[#0077B3] text-white shadow-lg mb-6 w-full max-w-3xl text-center transition-all duration-300 ease-in-out hover:scale-102 hover:shadow-lg"
+        whileHover={{ scale: 1.02 }}
         transition={{ type: "spring", stiffness: 100 }}
       >
         <h3 className="text-2xl font-semibold mb-2">Speaking Level Test</h3>
-        <p className="text-lg">Find out your English level and get level-up recommendations</p>
+        <p className="text-lg mb-4">Find out your English level and get level-up recommendations</p>
+        <p className="text-sm text-gray-200 mb-4">
+          Start the Speaking Level Test to evaluate your English proficiency and get tailored recommendations. This test will help you understand your current speaking skills and guide you on how to improve them through personalized practice scenarios with our AI-powered chatbot. Prepare for real-life customer service conversations and boost your confidence!
+        </p>
+
         <Link
-          to="/test"
-          className="mt-4 inline-block bg-white text-[#0077B3] py-2 px-6 rounded-full hover:bg-gray-300 transition duration-300"
+          to="/chatbot"
+          className="mt-4 inline-block bg-white text-[#0077B3] py-2 px-6 rounded-full hover:bg-[#005f7f] hover:text-white transition duration-300 ease-in-out"
         >
-          Start Practice
+          <FaMicrophone className="mr-2 inline-block text-xl" /> Start Practice
         </Link>
       </motion.div>
+
 
       {/* Featured Section */}
       <motion.div
@@ -278,43 +284,67 @@ const HomePage = () => {
       </motion.div>
 
       {/* Quick Navigation Section */}
-      <motion.div 
-        className="w-full max-w-4xl p-6 mt-8 bg-gray-100 rounded-lg shadow-lg text-center"
+      <motion.div
+        className="w-full max-w-4xl p-6 mt-8 bg-white rounded-lg shadow-xl text-center"
         whileHover={{ scale: 1.03 }}
       >
         <h2 className="text-2xl font-semibold text-[#0077B3] mb-4">Quick Navigation</h2>
-        <p className="text-lg text-gray-700">Easily access different features of TalkReady</p>
+        <p className="text-lg text-gray-700 mb-6">Easily access different features of TalkReady</p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-6">
-          
-          <Link to="/programs" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
-            <FaBookOpen className="text-3xl text-[#0077B3]" />
-            <span className="text-lg font-semibold text-gray-700">Programs</span>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+
+          {/* Accent Training */}
+          <Link
+            to="/accent-training/"
+            className="flex flex-col items-center gap-2 bg-[#f9f9f9] p-6 rounded-lg shadow-md hover:bg-[#0077B3] hover:text-white transition-all duration-300 ease-in-out"
+          >
+            <FaVolumeUp className="text-4xl text-[#0077B3] mb-2 transition-transform duration-300 ease-in-out transform hover:scale-110 hover:text-white" />
+            <span className="text-lg font-semibold">Accent Training</span> {/* Updated text */}
           </Link>
 
-          <Link to="/courses" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
-            <FaGraduationCap className="text-3xl text-[#0077B3]" />
-            <span className="text-lg font-semibold text-gray-700">Courses</span>
+          {/* Courses */}
+          <Link
+            to="/courses"
+            className="flex flex-col items-center gap-2 bg-[#f9f9f9] p-6 rounded-lg shadow-md hover:bg-[#0077B3] hover:text-white transition-all duration-300 ease-in-out"
+          >
+            <FaGraduationCap className="text-4xl text-[#0077B3] mb-2 transition-transform duration-300 ease-in-out transform hover:scale-110 hover:text-white" />
+            <span className="text-lg font-semibold">Courses</span>
           </Link>
 
-          <Link to="/reports" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
-            <FaChartBar className="text-3xl text-[#0077B3]" />
-            <span className="text-lg font-semibold text-gray-700">My Reports</span>
+          {/* My Reports */}
+          <Link
+            to="/my-reports"
+            className="flex flex-col items-center gap-2 bg-[#f9f9f9] p-6 rounded-lg shadow-md hover:bg-[#0077B3] hover:text-white transition-all duration-300 ease-in-out"
+          >
+            <FaChartBar className="text-4xl text-[#0077B3] mb-2 transition-transform duration-300 ease-in-out transform hover:scale-110 hover:text-white" />
+            <span className="text-lg font-semibold">My Reports</span>
           </Link>
 
-          <Link to="/chatbot" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
-            <FaRobot className="text-3xl text-[#0077B3]" />
-            <span className="text-lg font-semibold text-gray-700">Chatbot</span>
+          {/* English For Work */}
+          <Link
+            to="/english-for-work"
+            className="flex flex-col items-center gap-2 bg-[#f9f9f9] p-6 rounded-lg shadow-md hover:bg-[#0077B3] hover:text-white transition-all duration-300 ease-in-out"
+          >
+            <FaUserTie className="text-4xl text-[#0077B3] mb-2 transition-transform duration-300 ease-in-out transform hover:scale-110 hover:text-white" />
+            <span className="text-lg font-semibold">English For Work</span>
           </Link>
 
-          <Link to="/test" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
-            <FaMicrophone className="text-3xl text-[#0077B3]" />
-            <span className="text-lg font-semibold text-gray-700">Level Test</span>
+          {/* Chatbot */}
+          <Link
+            to="/chatbot"
+            className="flex flex-col items-center gap-2 bg-[#f9f9f9] p-6 rounded-lg shadow-md hover:bg-[#0077B3] hover:text-white transition-all duration-300 ease-in-out"
+          >
+            <FaRobot className="text-4xl text-[#0077B3] mb-2 transition-transform duration-300 ease-in-out transform hover:scale-110 hover:text-white" />
+            <span className="text-lg font-semibold">Chatbot</span> {/* Updated text */}
           </Link>
 
-          <Link to="/help" className="flex flex-col items-center gap-2 bg-white p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300">
-            <FaQuestionCircle className="text-3xl text-[#0077B3]" />
-            <span className="text-lg font-semibold text-gray-700">Help Center</span>
+          {/* FAQ */}
+          <Link
+            to="/faq"
+            className="flex flex-col items-center gap-2 bg-[#f9f9f9] p-6 rounded-lg shadow-md hover:bg-[#0077B3] hover:text-white transition-all duration-300 ease-in-out"
+          >
+            <FaQuestionCircle className="text-4xl text-[#0077B3] mb-2 transition-transform duration-300 ease-in-out transform hover:scale-110 hover:text-white" />
+            <span className="text-lg font-semibold">FAQ</span> {/* Updated text */}
           </Link>
 
         </div>

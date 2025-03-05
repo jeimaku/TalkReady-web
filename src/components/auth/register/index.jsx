@@ -3,7 +3,9 @@ import { Navigate, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../../../contexts/authContext";
 import { doCreateUserWithEmailAndPassword } from "../../../firebase/auth";
-import registerImage from "../../../assets/large image.png";
+import registerImage from "../../../assets/7.png";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // Import eye icons
+
 
 const Register = () => {
     const navigate = useNavigate();
@@ -17,6 +19,8 @@ const Register = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isRegistering, setIsRegistering] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [showPassword, setShowPassword] = useState(false); // State for password visibility
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false); // State for confirm password visibility
 
     if (userLoggedIn) {
         return <Navigate to="/homepage" replace />;
@@ -71,11 +75,33 @@ const Register = () => {
             transition={{ duration: 1 }}
         >
             <div className="bg-white shadow-lg rounded-3xl flex w-full max-w-5xl overflow-hidden">
-                {/* Image Section */}
-                <div className="hidden lg:flex w-2/5 bg-blue-100 items-center justify-center">
-                    <img src={registerImage} alt="Register Illustration" className="w-3/4 h-auto" />
+                {/* Left Section (Image & Text Box) */}
+                <div className="hidden lg:flex w-2/5 relative">
+                    {/* Background Image */}
+                    <img
+                        src={registerImage}
+                        alt="Register Illustration"
+                        className="absolute inset-0 w-full h-full object-cover"
+                    />
+    
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent"></div>
+    
+                    {/* Text Box with Background */}
+                    <motion.div
+                        className="absolute bottom-10 left-6 right-6 bg-black bg-opacity-60 text-white p-4 rounded-lg text-center mx-auto max-w-md"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                    >
+                        <h2 className="text-2xl font-bold">Join TalkReady Today!</h2>
+                        <p className="text-sm mt-2 leading-relaxed">
+                            Develop industry-standard communication skills with AI-driven coaching and real-time feedback.
+                            Prepare for call center job interviews and customer interactions with confidence!
+                        </p>
+                    </motion.div>
                 </div>
-
+    
                 {/* Form Section */}
                 <div className="w-full lg:w-3/5 p-8 flex flex-col justify-center max-w-lg mx-auto">
                     <motion.h2
@@ -111,13 +137,41 @@ const Register = () => {
                         </div>
                         <div>
                             <label className="text-sm text-gray-600 font-bold">Password</label>
-                            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} 
-                                className="w-full mt-2 px-3 py-2 border rounded-lg focus:border-blue-500 focus:ring focus:ring-blue-300 shadow-sm" />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full mt-2 px-3 py-2 border rounded-lg focus:border-blue-500 focus:ring focus:ring-blue-300 shadow-sm"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-3 mt-2"
+                                >
+                                    {showPassword ? <FaEyeSlash className="text-gray-500" /> : <FaEye className="text-gray-500" />}
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label className="text-sm text-gray-600 font-bold">Confirm Password</label>
-                            <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} 
-                                className="w-full mt-2 px-3 py-2 border rounded-lg focus:border-blue-500 focus:ring focus:ring-blue-300 shadow-sm" />
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    required
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full mt-2 px-3 py-2 border rounded-lg focus:border-blue-500 focus:ring focus:ring-blue-300 shadow-sm"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-3 mt-2"
+                                >
+                                    {showConfirmPassword ? <FaEyeSlash className="text-gray-500" /> : <FaEye className="text-gray-500" />}
+                                </button>
+                            </div>
                         </div>
                         {errorMessage && (
                             <motion.span 
@@ -141,6 +195,7 @@ const Register = () => {
             </div>
         </motion.div>
     );
+    
 };
 
 export default Register;

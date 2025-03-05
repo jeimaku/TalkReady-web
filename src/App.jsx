@@ -8,18 +8,22 @@ import EnglishLevel from "./components/english-level";
 import CurrentGoal from "./components/curent-goal";
 import LearningPreference from "./components/learning-preference";
 import DailyPracticeGoal from "./components/daily-practice-goal";
+import DesiredAccent from "./components/desired-accent";
 import PersonalizingPlan from "./components/personalizing-plan";
 import { AuthProvider } from "./contexts/authContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./components/homepage";
 import Profile from "./components/profile";
 import Courses from "./components/courses";
-import JobInterviewPrep from "./components/job-interview-prep";
+import AccentTraining from "./components/accent-training";
 import Test from "./components/test";
 import MyReports from "./components/my-reports";
 import EnglishForWork from "./components/english-for-work";
 import WelcomePage from "./components/welcome-page";
 import Chatbot from "./components/chatbot";
+import ShareFeedback from "./components/share-feedback";
+import FAQ from "./components/faq";
+import ContactUs from "./components/contact-us";
 
 //courses
 import IntroEnglishPronunciation from "./components/courses/course-details/intro-english-pronunciation";
@@ -30,6 +34,9 @@ import PhoneticChartActivity from "./components/courses/course-details/phonetic-
 
 //english-for-work page
 import CustomerServiceSimulation from "./components/english-for-work/modules/CustomerServSimul";
+
+//analysis
+import FeedbackAnalysis from "./components/english-for-work/analysis/FeedbackAnalysis";
 
 
 function App() {
@@ -45,6 +52,7 @@ function App() {
     "/learning-preference",
     "/daily-practice-goal",
     "/personalizing-plan",
+    "/desired-accent",
   ];
 
   // ✅ Redirect new users to onboarding, returning users to homepage
@@ -66,20 +74,29 @@ function App() {
   const routesArray = [
     { path: "/login", element: <Login /> },
     { path: "/register", element: <Register /> },
+    
+    // Onboarding Pages
     { path: "/welcome-page", element: <ProtectedRoute element={<WelcomePage />} /> },
     { path: "/english-level", element: <ProtectedRoute element={<EnglishLevel setProgress={setProgress} />} /> },
     { path: "/current-goal", element: <ProtectedRoute element={<CurrentGoal setProgress={setProgress} />} /> },
     { path: "/learning-preference", element: <ProtectedRoute element={<LearningPreference setProgress={setProgress} />} /> },
     { path: "/daily-practice-goal", element: <ProtectedRoute element={<DailyPracticeGoal setProgress={setProgress} />} /> },
+    { path: "/desired-accent", element: <ProtectedRoute element={<DesiredAccent setProgress={setProgress} />} /> },
     { path: "/personalizing-plan", element: <ProtectedRoute element={<PersonalizingPlan />} /> }, // ✅ Let this page handle onboarding completion
+    
+    
     { path: "/homepage", element: <ProtectedRoute element={<HomePage />} /> },
     { path: "/", element: userLoggedIn ? <Navigate to="/homepage" /> : <Navigate to="/login" /> },
     { path: "/profile", element: <ProtectedRoute element={<Profile setProgress={setProgress} />} /> },
     { path: "/courses", element: <ProtectedRoute element={<Courses setProgress={setProgress} />} /> },
-    { path: "/job-interview-prep", element: <ProtectedRoute element={<JobInterviewPrep setProgress={setProgress} />} /> },
+    { path: "/accent-training", element: <ProtectedRoute element={<AccentTraining setProgress={setProgress} />} /> },
     { path: "/my-reports", element: <ProtectedRoute element={<MyReports setProgress={setProgress} />} /> },
     { path: "/test", element: <ProtectedRoute element={<Test setProgress={setProgress} />} /> },
     { path: "chatbot", element: <ProtectedRoute element={<Chatbot setProgress={setProgress} />} /> },
+
+    { path: "/share-feedback", element: <ProtectedRoute element={<ShareFeedback setProgress={setProgress} />} /> },
+    { path: "/faq", element: <ProtectedRoute element={<FAQ setProgress={setProgress} />} /> },
+    { path: "/contact-us", element: <ProtectedRoute element={<ContactUs setProgress={setProgress} />} /> },
 
     // ✅ Course Details Routes
     { path: "/course/:courseId", element: <ProtectedRoute element={<IntroEnglishPronunciation setProgress={setProgress} />} /> },
@@ -91,6 +108,8 @@ function App() {
     { path: "/english-for-work", element: <ProtectedRoute element={<EnglishForWork setProgress={setProgress} />} /> },
     { path: "/english-for-work/modules/CustomerServSimul", element: <CustomerServiceSimulation setProgress={setProgress} /> },
 
+    // ✅ Eng for work page Details Routes analysis
+    { path: "/english-for-work/analysis/FeedbackAnalysis/:sessionId", element: <FeedbackAnalysis setProgress={setProgress} /> },
 
   
   ];
@@ -108,6 +127,8 @@ function App() {
         location.pathname !== "/courses/course-details/phonetic-chart-act/PhoneticChartActivity" &&
 
         location.pathname !== "/english-for-work/modules/CustomerServSimul" &&
+        
+        location.pathname !== "/english-for-work/analysis/FeedbackAnalysis" &&
 
         // location.pathname !== "/Chatbot" && 
         <Header />}

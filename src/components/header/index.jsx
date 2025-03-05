@@ -56,7 +56,7 @@ const Header = () => {
             <FaHome className="text-2xl" /> <span>Home</span>
           </Link>
           <div className="relative" ref={programsRef}>
-            <button onClick={togglePrograms} className={`flex items-center space-x-2 ${programsOpen || location.pathname.includes('/job-interview-prep') || location.pathname.includes('/english-for-work') ? 'text-[#0077B3] font-bold' : 'text-[#3066be]'} hover:scale-105 transition`}>
+            <button onClick={togglePrograms} className={`flex items-center space-x-2 ${programsOpen || location.pathname.includes('/accent-training') || location.pathname.includes('/english-for-work') ? 'text-[#0077B3] font-bold' : 'text-[#3066be]'} hover:scale-105 transition`}>
               <FaClipboardList className="text-2xl" /> <span>Programs</span>
             </button>
             {programsOpen && (
@@ -65,7 +65,7 @@ const Header = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="absolute left-0 mt-2 bg-white shadow-lg rounded-lg w-48 border border-gray-200"
               >
-                <Link to="/job-interview-prep" className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/job-interview-prep' ? 'text-[#0077B3] font-bold' : ''}`}>Job Interview Prep</Link>
+                <Link to="/accent-training" className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/accent-training' ? 'text-[#0077B3] font-bold' : ''}`}>Accent Training</Link>
                 <Link to="/english-for-work" className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/english-for-work' ? 'text-[#0077B3] font-bold' : ''}`}>English for Work</Link>
               </motion.div>
             )}
@@ -99,7 +99,6 @@ const Header = () => {
               animate={{ opacity: 1, y: 0 }}
               className="absolute right-0 mt-2 bg-white shadow-lg rounded-lg w-48 border border-gray-200"
             >
-              <Link to="/my-progress" className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/my-progress' ? 'text-[#0077B3] font-bold' : ''}`}>My Progress</Link>
               <Link to="/profile" className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/profile' ? 'text-[#0077B3] font-bold' : ''}`}>Profile</Link>
               <Link to="/share-feedback" className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/share-feedback' ? 'text-[#0077B3] font-bold' : ''}`}>Share Feedback</Link>
               <Link to="/faq" className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/faq' ? 'text-[#0077B3] font-bold' : ''}`}>FAQ</Link>
